@@ -47,16 +47,20 @@ enum IconID {
     ICON_JOINED,
     ICON_FORCE,
     ICON_FUNNY_BEACON,
-    ICON_FLOCK,
-    ICON_BRIGHTNESS,
-    ICON_SETTINGS,
-    ICON_CAMERA,
-    ICON_SUBGHZ,
-    ICON_IR,
-    ICON_SD_CARD,
-    ICON_BATTERY,
-    ICON_GALLERY,
-    ICON_COUNT
+    ICON_FLOCK = 41,
+    ICON_BRIGHTNESS = 42,
+    ICON_SETTINGS = 43,
+    ICON_CAMERA = 44,
+    ICON_SUBGHZ = 45,
+    ICON_IR = 46,
+    ICON_SD_CARD = 47,
+    ICON_BATTERY = 48,
+    ICON_GALLERY = 49,
+    ICON_DRONE = 50,
+    ICON_FOXHUNT = 51,
+    ICON_NOTEPAD = 52,
+    ICON_GAMES = 53,
+    ICON_COUNT = 54
 };
 
 // Imported 22x22 XBitmap Icon Matrix from Reference Code Asset Pack

@@ -1,0 +1,1544 @@
+#!/usr/bin/env python3
+"""Builds the comprehensive, high-DPI, zero-grain simulator.html for Axion Cyber Multi-Tool.
+Embeds real 22x22 XBM icons directly from icons_data.js.
+"""
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+ICONS_FILE = ROOT / "icons_data.js"
+OUT_FILE = ROOT / "simulator.html"
+
+def main():
+    icons_js = ICONS_FILE.read_text(encoding="utf-8")
+    
+    html_template = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Axion Cyber Multi-Tool // Hardware Simulator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600;700&display=swap');
+  
+  :root {{
+    --cyan: #00F0FF;
+    --green: #39FF14;
+    --amber: #FFB000;
+    --crimson: #FF003C;
+    --panel: #080B12;
+    --surface: #101622;
+    --white: #FFFFFF;
+    --grey: #7B889B;
+    --dim: #073844;
+  }}
+  
+  * {{ box-sizing: border-box; margin: 0; padding: 0; user-select: none; }}
+  
+  body {{
+    background: radial-gradient(circle at 50% 20%, #0d1527 0%, #04070d 100%);
+    color: #e0e6ed;
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    overflow-x: hidden;
+  }}
+  
+  .header-tag {{
+    text-align: center;
+    margin-bottom: 20px;
+  }}
+  .header-tag h1 {{
+    font-family: 'Orbitron', sans-serif;
+    font-size: 26px;
+    letter-spacing: 5px;
+    color: var(--cyan);
+    text-shadow: 0 0 20px rgba(0, 240, 255, 0.6), 0 0 40px rgba(0, 240, 255, 0.2);
+  }}
+  .header-tag p {{
+    font-size: 12px;
+    color: var(--grey);
+    margin-top: 5px;
+    letter-spacing: 1.5px;
+  }}
+  
+  /* Modern Rugged Cyber Deck Chassis */
+  .device-chassis {{
+    position: relative;
+    width: 396px;
+    background: linear-gradient(155deg, #1b2333 0%, #0f1420 50%, #090c14 100%);
+    border: 2px solid #28374d;
+    border-radius: 32px;
+    padding: 22px 22px 28px;
+    box-shadow: 
+      0 30px 80px rgba(0, 0, 0, 0.85),
+      0 0 35px rgba(0, 240, 255, 0.15),
+      inset 0 1px 2px rgba(255, 255, 255, 0.2),
+      inset 0 -2px 6px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }}
+  
+  /* Metallic Industrial Screws on 4 corners */
+  .screw {{
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #52637a 30%, #1a222e 90%);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.4), 0 1px 2px rgba(0,0,0,0.8);
+  }}
+  .screw::after {{
+    content: '';
+    position: absolute;
+    top: 4px; left: 1px; width: 7px; height: 1px;
+    background: #0d121a;
+  }}
+  .screw.tl {{ top: 12px; left: 14px; }}
+  .screw.tr {{ top: 12px; right: 14px; }}
+  .screw.bl {{ bottom: 12px; left: 14px; }}
+  .screw.br {{ bottom: 12px; right: 14px; }}
+  
+  .device-header {{
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--cyan);
+    letter-spacing: 1.2px;
+    margin-bottom: 14px;
+    padding: 0 4px;
+  }}
+  
+  .badge-tag {{
+    background: rgba(0, 240, 255, 0.12);
+    border: 1px solid var(--cyan);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 10px;
+    font-family: 'Orbitron', sans-serif;
+    color: var(--cyan);
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.25);
+  }}
+  
+  /* Recessed Optical Glass Bezel */
+  .screen-bezel {{
+    width: 310px;
+    height: 412px;
+    background: #020305;
+    border: 3px solid #141b26;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 
+      inset 0 0 16px rgba(0, 0, 0, 0.95),
+      0 2px 8px rgba(0, 0, 0, 0.6),
+      0 0 0 1px rgba(255, 255, 255, 0.05);
+    position: relative;
+    overflow: hidden;
+  }}
+  
+  /* High-DPI Razor-Sharp Display (288x384 CSS display size, 576x768 internal buffer) */
+  .screen-canvas {{
+    width: 288px;
+    height: 384px;
+    background: #000;
+    display: block;
+    border-radius: 6px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.9);
+  }}
+  
+  /* Subtle Optical Glare Reflection (adds depth without obscuring) */
+  .screen-glare {{
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 50%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 65%);
+    pointer-events: none;
+    border-radius: 12px 12px 0 0;
+  }}
+  
+  /* Controls Deck */
+  .controls-panel {{
+    width: 100%;
+    margin-top: 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 8px;
+  }}
+  
+  .joystick-pad {{
+    position: relative;
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle at 40% 35%, #182232, #0d131e);
+    border: 2px solid #28374d;
+    border-radius: 50%;
+    box-shadow: 
+      inset 0 4px 10px rgba(0, 0, 0, 0.7),
+      0 6px 14px rgba(0, 0, 0, 0.5),
+      inset 0 0 12px rgba(0, 240, 255, 0.05);
+  }}
+  
+  .btn-dpad {{
+    position: absolute;
+    background: linear-gradient(145deg, #1f2c40, #131b28);
+    border: 1px solid #364966;
+    color: var(--cyan);
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.08s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+  }}
+  .btn-dpad:hover {{
+    border-color: var(--cyan);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+  }}
+  .btn-dpad:active {{
+    background: var(--cyan);
+    color: #000;
+    transform: scale(0.92);
+  }}
+  
+  .btn-up    {{ top: 7px; left: 42px; width: 36px; height: 30px; border-radius: 8px 8px 3px 3px; }}
+  .btn-down  {{ bottom: 7px; left: 42px; width: 36px; height: 30px; border-radius: 3px 3px 8px 8px; }}
+  .btn-left  {{ top: 42px; left: 7px; width: 30px; height: 36px; border-radius: 8px 3px 3px 8px; }}
+  .btn-right {{ top: 42px; right: 7px; width: 30px; height: 36px; border-radius: 3px 8px 8px 3px; }}
+  
+  .btn-center {{
+    top: 40px; left: 40px; width: 40px; height: 40px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #2c3a50, #131a26);
+    border: 2px solid var(--cyan);
+    font-size: 10px;
+    font-weight: bold;
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.35);
+  }}
+  
+  .action-buttons {{
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+  }}
+  
+  .shutter-btn {{
+    width: 84px;
+    height: 42px;
+    background: linear-gradient(180deg, #ff1a4d 0%, #aa0026 100%);
+    border: 2px solid #ff4d73;
+    border-radius: 10px;
+    color: #fff;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(255, 0, 60, 0.45);
+    transition: all 0.08s ease;
+  }}
+  .shutter-btn:hover {{
+    box-shadow: 0 0 20px rgba(255, 0, 60, 0.7);
+    filter: brightness(1.1);
+  }}
+  .shutter-btn:active {{
+    transform: translateY(2px) scale(0.96);
+  }}
+  
+  .menu-btn {{
+    width: 84px;
+    height: 36px;
+    background: linear-gradient(180deg, #1b2636 0%, #0e141f 100%);
+    border: 2px solid #00F0FF;
+    border-radius: 10px;
+    color: var(--cyan);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(0, 240, 255, 0.25);
+    transition: all 0.08s ease;
+  }}
+  .menu-btn:hover {{
+    box-shadow: 0 0 16px rgba(0, 240, 255, 0.6);
+    background: #00F0FF;
+    color: #000;
+  }}
+  .menu-btn:active {{
+    transform: translateY(2px) scale(0.96);
+  }}
+  
+  .hint {{
+    font-size: 9px;
+    color: var(--grey);
+    margin-top: -8px;
+    letter-spacing: 0.8px;
+  }}
+  
+  .status-footer {{
+    width: 100%;
+    margin-top: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: var(--grey);
+    padding: 0 6px;
+  }}
+  
+  .key-legend {{
+    margin-top: 22px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--grey);
+    max-width: 460px;
+    line-height: 1.8;
+  }}
+  .key-legend kbd {{
+    background: #141c28;
+    border: 1px solid #28374d;
+    border-radius: 4px;
+    padding: 3px 7px;
+    color: var(--cyan);
+    margin: 0 2px;
+    font-size: 11px;
+  }}
+</style>
+</head>
+<body>
+
+<div class="header-tag">
+  <h1>AXION // CYBER MULTI-TOOL</h1>
+  <p>ESP32-S3 CYBER MULTI-TOOL // HIGH-DEFINITION RETINA SIMULATOR</p>
+</div>
+
+<div class="device-chassis">
+  <div class="screw tl"></div>
+  <div class="screw tr"></div>
+  <div class="screw bl"></div>
+  <div class="screw br"></div>
+  
+  <div class="device-header">
+    <span>AXION-S3 // REV 3.0</span>
+    <span class="badge-tag">16MB QIO + 8MB OPI</span>
+  </div>
+  
+  <div class="screen-bezel">
+    <canvas id="screen" class="screen-canvas" width="576" height="768"></canvas>
+    <div class="screen-glare"></div>
+  </div>
+  
+  <div class="controls-panel">
+    <div class="joystick-pad">
+      <button class="btn-dpad btn-up" onclick="handleInput('UP')">▲</button>
+      <button class="btn-dpad btn-down" onclick="handleInput('DOWN')">▼</button>
+      <button class="btn-dpad btn-left" onclick="handleInput('LEFT')">◀</button>
+      <button class="btn-dpad btn-right" onclick="handleInput('RIGHT')">▶</button>
+      <button class="btn-dpad btn-center" onclick="handleInput('CLICK')">OK</button>
+    </div>
+    
+    <div class="action-buttons">
+      <button class="shutter-btn" onclick="handleInput('SHUTTER')">SNAP</button>
+      <div class="hint">HOLD = VIDEO REC</div>
+      <button class="menu-btn" onclick="handleInput('MENU')">MENU</button>
+    </div>
+  </div>
+  
+  <div class="status-footer">
+    <span>AUDIO: TACTICAL SYNTH</span>
+    <span id="fpsCounter">60 FPS</span>
+  </div>
+</div>
+
+<div class="key-legend">
+  <kbd>▲▼◀▶</kbd> Joystick &nbsp;|&nbsp; <kbd>Enter / Space</kbd> Center Click &nbsp;|&nbsp;
+  <kbd>S</kbd> Shutter Snap &nbsp;|&nbsp; <kbd>Shift+S</kbd> Shutter Hold &nbsp;|&nbsp; <kbd>M / Esc</kbd> Menu
+</div>
+
+<script>
+// Embedded 50 22x22 XBM Icon Matrices (Auto-generated from src/icon_assets.cpp)
+{icons_js}
+
+const canvas = document.getElementById('screen');
+const ctx = canvas.getContext('2d');
+
+// Internal scale for High-DPI 2.4x retina rendering (native logical 240x320)
+const SCALE = 2.4;
+ctx.scale(SCALE, SCALE);
+
+// ==========================================
+// COLOR PALETTE & DYNAMIC THEMES
+// ==========================================
+const C = {{
+  cyan: '#00F0FF',
+  green: '#39FF14',
+  amber: '#FFB000',
+  crimson: '#FF003C',
+  white: '#FFFFFF',
+  grey: '#7B889B',
+  dim: '#073844',
+  stellar: '#3377FF',
+  nebula: '#9B51E0'
+}};
+
+let settings = {{
+  callsign: 'OPERATOR_01',
+  startMode: 0,
+  profileMode: 0, // 0: Standard, 1: Stealth Ops, 2: Sniffer Lab
+  themePreset: 0, // 0: Cyberpunk, 1: AMOLED, 2: Stealth, 3: Field Amber, 4: Emerald, 5: Synthwave, 6: Solarized
+  menuLayout: 0,  // 0: Dashboard, 1: Grid 2x4, 2: List Stack
+  cpuFreq: 240,   // 240, 160, 80 MHz
+  fpsCap: 60,     // 60, 30, 20 FPS
+  nrfPwr: 0,      // 0: Max 0dBm, 1: -6dBm, 2: -12dBm, 3: -18dBm
+  nrfRate: 0,     // 0: 250kbps, 1: 1Mbps, 2: 2Mbps
+  subghzFilt: 0,  // 0: High Sens, 1: Filtered
+  irBoost: false, // false: Normal 50mA, true: Turbo 100mA
+  buzzerMode: 0,  // 0: Subtle Chirp, 1: Cyber Tones, 2: Silent
+  bright: 85,
+  sound: true,
+  scene: 0, stillRes: 3, stillQ: 6, cbri: 0, ccon: 1, csat: 0, csharp: 2, cden: 4, cev: 0, cgain: 2, cwb: 0, prev: 0,
+  flip: true, mir: false, grid: 1,
+  imgPrefix: 'image', imgIndex: 1, promptNaming: true,
+  hop: 1, autoPcap: true, foxSens: 65
+}};
+
+function getTheme() {{
+  switch (settings.themePreset) {{
+    case 1:
+      // AMOLED: Pure Black, Vivid Neon Crimson, Neon Emerald
+      return {{
+        bg: '#000000', panel: '#000000', surface: '#0C0C0C', cardSel: '#181818', cardBorder: '#222222',
+        primary: '#00FF9D', accent: '#FF0055', text: '#FFFFFF', subtext: '#808080', border: '#282828'
+      }};
+    case 2:
+      // STEALTH: Matte Carbon Slate, Pure Titanium White, Cold Ice Blue
+      return {{
+        bg: '#0D1117', panel: '#161B22', surface: '#21262D', cardSel: '#30363D', cardBorder: '#384250',
+        primary: '#FFFFFF', accent: '#58A6FF', text: '#FFFFFF', subtext: '#8B949E', border: '#252D3A'
+      }};
+    case 3:
+      // FIELD AMBER: High-Visibility Military Amber Deck & ODR Tactical Green
+      return {{
+        bg: '#000000', panel: '#1A1100', surface: '#241800', cardSel: '#3A2800', cardBorder: '#5A3B00',
+        primary: '#FFB000', accent: '#39FF14', text: '#FFEAA7', subtext: '#997300', border: '#FFB000'
+      }};
+    case 4:
+      // EMERALD: Retro Pip-Boy Hacker Terminal (Deep Forest Black & Phosphor Green)
+      return {{
+        bg: '#020D04', panel: '#041508', surface: '#0A2410', cardSel: '#12381A', cardBorder: '#1A4822',
+        primary: '#00FF66', accent: '#7CFF00', text: '#E0FFE8', subtext: '#529E65', border: '#0BA23A'
+      }};
+    case 5:
+      // SYNTHWAVE: Outrun Midnight Abyss, Electric Violet & Hot Pink
+      return {{
+        bg: '#0B0819', panel: '#120D26', surface: '#1E1638', cardSel: '#322254', cardBorder: '#452C70',
+        primary: '#B026FF', accent: '#FF2A85', text: '#FFFFFF', subtext: '#9680B8', border: '#00E5FF'
+      }};
+    case 6:
+      // SOLARIZED: Solarized Dark Tactical (Base 03, Solarized Amber & Cyan)
+      return {{
+        bg: '#002B36', panel: '#073642', surface: '#094857', cardSel: '#145A6B', cardBorder: '#2B7283',
+        primary: '#2AA198', accent: '#B58900', text: '#EEE8D5', subtext: '#93A1A1', border: '#268BD2'
+      }};
+    default:
+      // CYBERPUNK (Default): True OLED Obsidian Black, Hyper Cyan, Flare Amber
+      return {{
+        bg: '#000000', panel: '#080B12', surface: '#101622', cardSel: '#182236', cardBorder: '#151E2B',
+        primary: '#00F0FF', accent: '#FFB000', text: '#FFFFFF', subtext: '#7B889B', border: '#073844'
+      }};
+  }}
+}}
+
+function F(px, weight) {{
+  ctx.font = (weight ? weight + ' ' : '') + px + 'px "Share Tech Mono", monospace';
+}}
+
+// Smooth anti-aliased rounded rectangle
+function rr(x, y, w, h, r) {{
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}}
+
+// ==========================================
+// AUDIO ENGINE (Web Audio API Synthesizer)
+// ==========================================
+let audioCtx = null;
+function playBuzzer(freq, durationMs) {{
+  if (!settings.sound) return;
+  try {{
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + durationMs / 1000);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + durationMs / 1000);
+  }} catch(e) {{}}
+}}
+
+// ==========================================
+// 22x22 XBM BITMAP ICON RENDERER
+// ==========================================
+function drawIcon(x, y, iconId, fgCol, bgCol) {{
+  ctx.fillStyle = bgCol;
+  ctx.fillRect(x, y, 22, 22);
+  if (typeof iconsData === 'undefined' || !iconsData[iconId]) return;
+  
+  const bytes = iconsData[iconId];
+  ctx.fillStyle = fgCol;
+  for (let r = 0; r < 22; r++) {{
+    for (let b = 0; b < 3; b++) {{
+      const bv = bytes[r * 3 + b];
+      for (let bit = 0; bit < 8; bit++) {{
+        const cx = b * 8 + bit;
+        // Standard outline XBM: bit 1 is foreground
+        if (cx < 22 && (bv & (1 << bit))) {{
+          ctx.fillRect(x + cx, y + r, 1, 1);
+        }}
+      }}
+    }}
+  }}
+}}
+
+// Map string keys to enum IconID
+const ICON_MAP = {{
+  cam: 44, gallery: 49, sd: 47, note: 52, game: 53, spectrum: 6,
+  wifi: 11, ble: 2, drone: 50, evilportal: 0, subghz: 45, ir: 46,
+  guide: 17, cfg: 43, reboot: 14, bat: 48, lock: 34
+}};
+
+// ==========================================
+// HUD ACCENTS & CYBER GRAFFITI
+// ==========================================
+function drawGraffitiCrown(x, y, col) {{
+  ctx.strokeStyle = col; ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(x - 4, y + 6); ctx.lineTo(x - 4, y); ctx.lineTo(x - 1, y + 4);
+  ctx.lineTo(x + 2, y - 2); ctx.lineTo(x + 5, y + 4); ctx.lineTo(x + 8, y);
+  ctx.lineTo(x + 8, y + 6);
+  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x - 4, y + 7); ctx.lineTo(x + 8, y + 7); ctx.stroke();
+}}
+
+function drawGraffitiBarcode(x, y, col) {{
+  ctx.fillStyle = col;
+  const bars = [1, 2, 1, 1, 2, 1, 3, 1, 2, 1];
+  let curX = x;
+  for (let i = 0; i < bars.length; i++) {{
+    ctx.fillRect(curX, y, bars[i], 8);
+    curX += bars[i] + 1;
+  }}
+}}
+
+function drawCyberGraffitiHUD(x, y, tag, primaryCol, accentCol) {{
+  F(10, 'bold');
+  ctx.fillStyle = accentCol;
+  ctx.fillText(tag, x + 1, y + 11);
+  ctx.fillStyle = primaryCol;
+  ctx.fillText(tag, x, y + 10);
+}}
+
+function topBar(title, accentCol) {{
+  const T = getTheme();
+  ctx.fillStyle = T.panel; ctx.fillRect(0, 0, 240, 22);
+  ctx.fillStyle = accentCol || T.primary; ctx.fillRect(0, 22, 240, 1);
+  
+  // Tag accents
+  drawGraffitiCrown(14, 2, T.accent);
+  drawCyberGraffitiHUD(24, 4, title, T.primary, T.accent);
+  drawGraffitiBarcode(184, 7, T.border);
+  
+  // Status dot
+  ctx.fillStyle = T.accent;
+  ctx.beginPath(); ctx.arc(228, 11, 3, 0, 7); ctx.fill();
+}}
+
+function bottomBar(hint) {{
+  const T = getTheme();
+  ctx.fillStyle = T.panel; ctx.fillRect(0, 303, 240, 17);
+  ctx.fillStyle = T.cardBorder; ctx.fillRect(0, 303, 240, 1);
+  ctx.fillStyle = T.primary; ctx.fillRect(4, 307, 2, 9);
+  F(9); ctx.fillStyle = T.subtext; ctx.fillText(hint, 10, 315);
+}}
+
+function centerText(t, y, col, px) {{
+  F(px || 10); ctx.fillStyle = col;
+  const w = ctx.measureText(t).width;
+  ctx.fillText(t, (240 - w) / 2, y);
+}}
+
+// ==========================================
+// SMOOTH ZERO-GRAIN BRIGHTNESS DIMMING
+// ==========================================
+function applyBrightness() {{
+  const pct = settings.bright;
+  if (pct >= 100) return;
+  // Pure alpha dimming overlay without horizontal rasterization scanline artifacts
+  ctx.save();
+  ctx.fillStyle = `rgba(0, 0, 0, ${{(100 - pct) * 0.0075}})`;
+  ctx.fillRect(0, 0, 240, 320);
+  ctx.restore();
+}}
+
+// ==========================================
+// AXION STAR LOGO (Faceted Shading)
+// ==========================================
+function drawAxionStarLogo(cx, cy, size, glowAlpha, drawChevrons) {{
+  if (size < 4) return;
+  const R = size, r = size * 0.28;
+  const T = getTheme();
+  
+  const tU = {{ x: cx, y: cy - R }};
+  const tD = {{ x: cx, y: cy + R }};
+  const tL = {{ x: cx - R, y: cy }};
+  const tR = {{ x: cx + R, y: cy }};
+  
+  const wUR = {{ x: cx + r * 0.707, y: cy - r * 0.707 }};
+  const wDR = {{ x: cx + r * 0.707, y: cy + r * 0.707 }};
+  const wDL = {{ x: cx - r * 0.707, y: cy + r * 0.707 }};
+  const wUL = {{ x: cx - r * 0.707, y: cy - r * 0.707 }};
+  
+  function tri(p1, p2, p3, col) {{
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y);
+    ctx.closePath(); ctx.fill();
+  }}
+  
+  const cLight = T.primary, cDark = C.stellar;
+  tri({{x:cx,y:cy}}, tU, wUR, cLight); tri({{x:cx,y:cy}}, tU, wUL, cDark);
+  tri({{x:cx,y:cy}}, tR, wUR, cDark);  tri({{x:cx,y:cy}}, tR, wDR, cLight);
+  tri({{x:cx,y:cy}}, tD, wDR, cDark);  tri({{x:cx,y:cy}}, tD, wDL, cLight);
+  tri({{x:cx,y:cy}}, tL, wDL, cDark);  tri({{x:cx,y:cy}}, tL, wUL, cLight);
+  
+  ctx.strokeStyle = glowAlpha > 0.5 ? '#FFFFFF' : T.primary;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(tU.x, tU.y); ctx.lineTo(wUR.x, wUR.y); ctx.lineTo(tR.x, tR.y);
+  ctx.lineTo(wDR.x, wDR.y); ctx.lineTo(tD.x, tD.y); ctx.lineTo(wDL.x, wDL.y);
+  ctx.lineTo(tL.x, tL.y); ctx.lineTo(wUL.x, wUL.y); ctx.closePath();
+  ctx.stroke();
+  
+  if (drawChevrons) {{
+    const dist = R * 1.5, span = size * 0.28;
+    ctx.strokeStyle = T.accent; ctx.lineWidth = 1.2;
+    // Chevrons on 4 sides
+    ctx.beginPath(); ctx.moveTo(cx - span, cy - dist + span); ctx.lineTo(cx, cy - dist); ctx.lineTo(cx + span, cy - dist + span); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - span, cy + dist - span); ctx.lineTo(cx, cy + dist); ctx.lineTo(cx + span, cy + dist - span); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - dist + span, cy - span); ctx.lineTo(cx - dist, cy); ctx.lineTo(cx - dist + span, cy + span); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + dist - span, cy - span); ctx.lineTo(cx + dist, cy); ctx.lineTo(cx + dist - span, cy + span); ctx.stroke();
+  }}
+}}
+
+// ==========================================
+// MENU CONFIGURATION
+// ==========================================
+const MENU = [
+  {{ l: 'Camera Viewfinder',     s: 'Live 20+ FPS & 3MP Capture',   ic: 'cam',        col: C.cyan,     mode: 'CAMERA' }},
+  {{ l: 'Photo & Video Gallery', s: 'Review Photos & Video Clips',  ic: 'gallery',    col: C.white,    mode: 'GALLERY' }},
+  {{ l: 'SD File Explorer',      s: 'Browse, View & Delete Files',  ic: 'sd',         col: C.green,    mode: 'FILES' }},
+  {{ l: 'Notepad Text Editor',   s: 'Create & Edit SD TXT Notes',   ic: 'note',       col: C.cyan,     mode: 'NOTEPAD' }},
+  {{ l: 'Cyber Mini-Games',      s: 'Retro 4-in-1 Space Arcade',    ic: 'game',       col: C.green,    mode: 'GAMES' }},
+  {{ l: '2.4GHz RF Analyzer',    s: '126-Ch Spectrum & Waterfall',  ic: 'spectrum',   col: C.amber,    mode: 'NRF' }},
+  {{ l: 'Wi-Fi 802.11 Monitor',  s: 'Beacon, Deauth & Encryption',  ic: 'wifi',       col: C.green,    mode: 'WIFI' }},
+  {{ l: 'BLE Proximity Scanner', s: 'Discovery & Manufacturer IDs', ic: 'ble',        col: C.crimson,  mode: 'BLE' }},
+  {{ l: 'Drone Remote ID Sniff', s: 'FAA ASTM F3411 Drone Radar',   ic: 'drone',      col: C.amber,    mode: 'DRONE' }},
+  {{ l: 'Evil Captive Portal',   s: 'Phishing AP & Cred Harvester', ic: 'evilportal', col: C.crimson,  mode: 'EVILPORTAL' }},
+  {{ l: 'Sub-GHz 433MHz Engine', s: 'Raw Pulse Capture & Replay',   ic: 'subghz',     col: C.amber,    mode: 'SUBGHZ' }},
+  {{ l: 'Infrared Transceiver',  s: 'TSOP Capture & Signal Blaster',ic: 'ir',         col: C.cyan,     mode: 'IR' }},
+  {{ l: 'Device Feature Guide',  s: 'Detailed Operation & Controls',ic: 'guide',      col: C.cyan,     mode: 'GUIDE' }},
+  {{ l: 'System & Settings',     s: 'Configuration & Diagnostics',  ic: 'cfg',        col: C.white,    mode: 'SETTINGS' }}
+];
+
+let mode = 'BOOT';
+let menuSel = 0, menuScroll = 0;
+const MENU_VISIBLE = 8;
+
+// ==========================================
+// 1. BOOT SEQUENCE
+// ==========================================
+let bootStart = 0;
+const warpStars = Array.from({{length: 56}}, (_, i) => ({{
+  angle: i * (Math.PI * 2 / 56) + (i % 5) * 0.14,
+  dist: ((i * 19) % 135 + 8),
+  speed: 1.2 + (i % 7) * 0.6,
+  size: (i % 3 === 0) ? 2.2 : 1.2
+}}));
+
+const bootStages = [
+  'OCTAL PSRAM 8MB // HYPERBUS LOCKED',
+  'HIGH-SPEED SDMMC 1-BIT MOUNTED',
+  'OV3660 ISP SENSOR CALIBRATED',
+  'RADIO & RF PROMISCUOUS ARMED',
+  'AXION CYBER CORE // READY'
+];
+
+function renderBoot(ts) {{
+  if (!bootStart) bootStart = ts;
+  let elapsed = ts - bootStart;
+  let p = elapsed / 2200; if (p > 1) p = 1;
+  const cx = 120, cy = 110;
+  const T = getTheme();
+  
+  ctx.fillStyle = T.bg; ctx.fillRect(0, 0, 240, 320);
+  
+  // Animated warp starfield
+  warpStars.forEach(s => {{
+    s.dist += s.speed * (1.0 + p * 2.5);
+    if (s.dist > 150) s.dist = 6;
+    const sx = cx + Math.cos(s.angle) * s.dist;
+    const sy = cy + Math.sin(s.angle) * s.dist;
+    if (sx >= 0 && sx <= 240 && sy >= 0 && sy <= 320) {{
+      ctx.fillStyle = (s.size > 1.8) ? T.primary : T.accent;
+      ctx.fillRect(sx, sy, s.size, s.size);
+    }}
+  }});
+  
+  // Hero Axion Star Logo
+  drawAxionStarLogo(cx, cy, 38 + Math.sin(elapsed * 0.005) * 2, p, true);
+  
+  // Title
+  F(14, 'bold'); ctx.fillStyle = T.primary;
+  centerText('AXION // CYBER DECK', 195, T.primary, 14);
+  F(9); centerText('ESP32-S3 N16R8 TACTICAL CORE', 210, T.subtext, 9);
+  
+  // Loading progress bar
+  const bw = 190, bh = 6;
+  const bx = (240 - bw) / 2, by = 232;
+  ctx.fillStyle = T.surface; rr(bx, by, bw, bh, 3); ctx.fill();
+  ctx.strokeStyle = T.cardBorder; rr(bx, by, bw, bh, 3); ctx.stroke();
+  
+  const fillW = bw * p;
+  ctx.fillStyle = T.accent; rr(bx, by, fillW, bh, 3); ctx.fill();
+  
+  // Subtext stage ticker
+  const stgIdx = Math.min(bootStages.length - 1, Math.floor(p * bootStages.length));
+  F(8); ctx.fillStyle = T.accent;
+  centerText(bootStages[stgIdx], 255, T.accent, 8);
+  
+  F(8); ctx.fillStyle = T.subtext;
+  centerText('MEMORY: 8MB PSRAM OK | SD: EXFAT 64GB', 270, T.subtext, 8);
+  
+  if (p >= 1) {{
+    mode = 'MENU';
+    playBuzzer(2200, 25);
+  }}
+}}
+
+// ==========================================
+// 2. MAIN MENU (Multi-Layout Engine)
+// ==========================================
+function renderMenu() {{
+  const T = getTheme();
+  
+  if (settings.menuLayout === 0) {{
+    // ------------------------------------
+    // LAYOUT 0: DASHBOARD HERO TELEMETRY
+    // ------------------------------------
+    ctx.fillStyle = T.panel; ctx.fillRect(0, 0, 240, 22);
+    ctx.fillStyle = T.primary; ctx.fillRect(0, 22, 240, 1);
+    drawGraffitiCrown(14, 2, T.accent);
+    drawCyberGraffitiHUD(4, 5, 'AXION // DECK', T.primary, T.accent);
+    drawGraffitiBarcode(184, 8, T.border);
+    ctx.fillStyle = T.accent; ctx.beginPath(); ctx.arc(226, 11, 3, 0, 7); ctx.fill();
+    
+    // Redesigned Compact Hardware Telemetry Strip (Sleek 20px Single-Row HUD)
+    // Replaces chunky 46px 2x2 box, removes TEMP entirely, and uses crisp minimal icons.
+    const hudY = 24, hudW = 228, hudH = 20;
+    ctx.fillStyle = T.surface; rr(6, hudY, hudW, hudH, 4); ctx.fill();
+    ctx.strokeStyle = T.cardBorder; rr(6, hudY, hudW, hudH, 4); ctx.stroke();
+    
+    // Indicator 1: MicroSD Card Icon + Status (Left)
+    ctx.strokeStyle = T.primary; ctx.lineWidth = 1;
+    ctx.strokeRect(11, hudY + 4, 8, 11);
+    ctx.fillStyle = T.primary; ctx.fillRect(13, hudY + 2, 4, 3);
+    ctx.fillStyle = C.green; ctx.beginPath(); ctx.arc(24, hudY + 9, 2.5, 0, 7); ctx.fill();
+    F(8, 'bold'); ctx.fillStyle = C.green; ctx.fillText('SD:OK', 29, hudY + 13);
+    
+    // Indicator 2: PSRAM Memory IC (Middle-Left)
+    ctx.strokeStyle = T.primary; ctx.strokeRect(74, hudY + 5, 9, 9);
+    ctx.fillStyle = T.cardBorder; ctx.fillRect(76, hudY + 7, 5, 5);
+    ctx.fillStyle = T.accent;
+    ctx.fillRect(72, hudY + 7, 2, 2); ctx.fillRect(72, hudY + 10, 2, 2);
+    ctx.fillRect(83, hudY + 7, 2, 2); ctx.fillRect(83, hudY + 10, 2, 2);
+    F(8, 'bold'); ctx.fillStyle = T.text; ctx.fillText('8M', 88, hudY + 13);
+    
+    // Indicator 3: Engine FPS / Core Rate (Middle-Right)
+    F(8); ctx.fillStyle = T.subtext; ctx.fillText('60FPS', 118, hudY + 13);
+    
+    // Indicator 4: Battery Icon + Voltage & Percentage (Right)
+    ctx.strokeStyle = T.border; ctx.strokeRect(164, hudY + 5, 16, 9);
+    ctx.fillStyle = T.border; ctx.fillRect(180, hudY + 7, 2, 5);
+    ctx.fillStyle = C.green; ctx.fillRect(166, hudY + 7, 12, 5);
+    F(8, 'bold'); ctx.fillStyle = C.green; ctx.fillText('96% 4.12V', 184, hudY + 13);
+    
+    // Scrollable Tool Cards under Hero (7 cards visible, 34px height)
+    const startY = hudY + hudH + 3; // 47px
+    const cardH = 34, sp = 2, visible = 7;
+    
+    let scroll = 0;
+    if (menuSel >= 4) scroll = menuSel - 3;
+    if (scroll > MENU.length - visible) scroll = MENU.length - visible;
+    if (scroll < 0) scroll = 0;
+    
+    for (let r = 0; r < visible; r++) {{
+      const i = scroll + r; if (i >= MENU.length) break;
+      const it = MENU[i], y = startY + r * (cardH + sp), sel = (i === menuSel);
+      
+      ctx.fillStyle = sel ? T.cardSel : T.surface; rr(6, y, 228, cardH, 5); ctx.fill();
+      ctx.strokeStyle = sel ? it.col : T.cardBorder; rr(6, y, 228, cardH, 5); ctx.stroke();
+      
+      if (sel) {{
+        ctx.fillStyle = it.col; rr(7, y + 3, 3, cardH - 6, 2); ctx.fill();
+        ctx.strokeStyle = it.col; rr(5, y - 1, 230, cardH + 2, 6); ctx.stroke();
+        ctx.fillStyle = it.col; rr(216, y + 9, 14, 16, 3); ctx.fill();
+        ctx.fillStyle = T.bg; F(10, 'bold'); ctx.fillText('>', 221, y + 21);
+      }}
+      
+      const iconWellBg = sel ? T.surface : T.panel;
+      ctx.fillStyle = iconWellBg; rr(12, y + 6, 22, 22, 4); ctx.fill();
+      if (sel) {{ ctx.strokeStyle = it.col; rr(12, y + 6, 22, 22, 4); ctx.stroke(); }}
+      
+      drawIcon(12, y + 6, ICON_MAP[it.ic] || 43, sel ? it.col : T.subtext, iconWellBg);
+      
+      F(10, sel ? 'bold' : ''); ctx.fillStyle = sel ? T.text : T.primary;
+      ctx.fillText(it.l, 42, y + 15);
+      F(8); ctx.fillStyle = sel ? it.col : T.subtext;
+      ctx.fillText(it.s, 42, y + 27);
+    }}
+    
+  }} else if (settings.menuLayout === 1) {{
+    // ------------------------------------
+    // LAYOUT 1: 2x4 MODERN GRID TILES
+    // ------------------------------------
+    ctx.fillStyle = T.panel; ctx.fillRect(0, 0, 240, 22);
+    ctx.fillStyle = T.primary; ctx.fillRect(0, 22, 240, 1);
+    drawGraffitiCrown(14, 2, T.accent);
+    drawCyberGraffitiHUD(4, 5, 'AXION // GRID', T.primary, T.accent);
+    drawGraffitiBarcode(184, 8, T.border);
+    ctx.fillStyle = T.primary; ctx.beginPath(); ctx.arc(226, 11, 3, 0, 7); ctx.fill();
+    
+    const cols = 2, rows = 4, visibleTiles = cols * rows;
+    const tileW = 111, tileH = 62;
+    const startX = 6, startY = 26, spX = 6, spY = 5;
+    
+    const page = Math.floor(menuSel / visibleTiles);
+    const pageStart = page * visibleTiles;
+    
+    for (let r = 0; r < visibleTiles; r++) {{
+      const i = pageStart + r; if (i >= MENU.length) break;
+      const it = MENU[i];
+      const c = r % cols;
+      const rowIdx = Math.floor(r / cols);
+      const x = startX + c * (tileW + spX);
+      const y = startY + rowIdx * (tileH + spY);
+      const sel = (i === menuSel);
+      
+      ctx.fillStyle = sel ? T.cardSel : T.surface; rr(x, y, tileW, tileH, 6); ctx.fill();
+      ctx.strokeStyle = sel ? it.col : T.cardBorder; rr(x, y, tileW, tileH, 6); ctx.stroke();
+      
+      if (sel) {{
+        ctx.strokeStyle = it.col; rr(x - 1, y - 1, tileW + 2, tileH + 2, 7); ctx.stroke();
+        ctx.fillStyle = it.col; rr(x + 4, y + 4, 3, 14, 1); ctx.fill();
+      }}
+      
+      const iconX = x + 10, iconY = y + 8;
+      const iconWellBg = sel ? T.surface : T.panel;
+      ctx.fillStyle = iconWellBg; rr(iconX - 2, iconY - 2, 26, 26, 4); ctx.fill();
+      if (sel) {{ ctx.strokeStyle = it.col; rr(iconX - 2, iconY - 2, 26, 26, 4); ctx.stroke(); }}
+      
+      drawIcon(iconX, iconY, ICON_MAP[it.ic] || 43, sel ? it.col : T.subtext, iconWellBg);
+      
+      F(9, sel ? 'bold' : ''); ctx.fillStyle = sel ? T.text : T.primary;
+      const shortLbl = it.l.split(' ')[0] + ' ' + (it.l.split(' ')[1] || '');
+      ctx.fillText(shortLbl.slice(0, 12), x + 40, y + 17);
+      
+      F(8); ctx.fillStyle = sel ? it.col : T.subtext;
+      ctx.fillText(it.s.slice(0, 16), x + 8, y + 50);
+    }}
+    
+  }} else {{
+    // ------------------------------------
+    // LAYOUT 2: CLASSIC VERTICAL STACK
+    // ------------------------------------
+    if (menuSel < menuScroll) menuScroll = menuSel;
+    if (menuSel >= menuScroll + MENU_VISIBLE) menuScroll = menuSel - MENU_VISIBLE + 1;
+    
+    ctx.fillStyle = T.panel; ctx.fillRect(0, 0, 240, 22);
+    ctx.fillStyle = T.primary; ctx.fillRect(0, 22, 240, 1);
+    drawGraffitiCrown(14, 2, T.accent);
+    drawCyberGraffitiHUD(4, 5, 'AXION // STROM', T.primary, T.accent);
+    drawGraffitiBarcode(184, 8, T.border);
+    ctx.fillStyle = T.primary; ctx.beginPath(); ctx.arc(226, 11, 3, 0, 7); ctx.fill();
+    
+    const startY = 24, cardH = 32, sp = 2;
+    for (let r = 0; r < MENU_VISIBLE; r++) {{
+      const i = menuScroll + r; if (i >= MENU.length) break;
+      const it = MENU[i], y = startY + r * (cardH + sp), sel = (i === menuSel);
+      
+      ctx.fillStyle = sel ? T.cardSel : T.surface; rr(6, y, 228, cardH, 4); ctx.fill();
+      ctx.strokeStyle = sel ? it.col : T.cardBorder; rr(6, y, 228, cardH, 4); ctx.stroke();
+      
+      if (sel) {{
+        ctx.fillStyle = it.col; rr(6, y + 2, 4, cardH - 4, 2); ctx.fill();
+        ctx.strokeStyle = it.col; rr(4, y - 1, 232, cardH + 2, 5); ctx.stroke();
+        ctx.fillStyle = it.col; rr(216, y + 8, 14, 16, 3); ctx.fill();
+        ctx.fillStyle = T.bg; F(11, 'bold'); ctx.fillText('>', 221, y + 20);
+      }}
+      
+      drawIcon(12, y + 5, ICON_MAP[it.ic] || 43, sel ? it.col : T.subtext, sel ? T.cardSel : T.surface);
+      F(11, sel ? 'bold' : ''); ctx.fillStyle = sel ? T.text : T.primary; ctx.fillText(it.l, 40, y + 14);
+      F(9); ctx.fillStyle = sel ? it.col : T.subtext; ctx.fillText(it.s, 40, y + 26);
+    }}
+    
+    if (MENU.length > MENU_VISIBLE) {{
+      const trackH = 274;
+      ctx.fillStyle = T.panel; rr(236, 25, 3, trackH, 1); ctx.fill();
+      ctx.strokeStyle = T.border; ctx.beginPath(); ctx.moveTo(237, 25); ctx.lineTo(237, 25 + trackH); ctx.stroke();
+      const th = trackH * MENU_VISIBLE / MENU.length;
+      const ty = 25 + (trackH - th) * menuScroll / (MENU.length - MENU_VISIBLE);
+      ctx.fillStyle = T.primary; rr(236, ty, 3, th, 1); ctx.fill();
+    }}
+  }}
+  
+  bottomBar('▲▼:NAV  ●:SELECT  ◀:BACK  [RF:2.4G+433M+IR]');
+}}
+
+// ==========================================
+// 3. DRONE REMOTE ID (ODID) SNIFFER SUITE
+// ==========================================
+let droneTarget = {{
+  id: '1596D-DJI-AIR3-V4',
+  altAgl: 124,
+  altMsl: 142,
+  lat: '37.7749 N',
+  lon: '122.4194 W',
+  pilotLat: '37.7735 N',
+  pilotLon: '122.4180 W',
+  speed: '14.2 m/s',
+  heading: '048 deg',
+  distM: 285,
+  rssi: -62,
+  locked: true
+}};
+let droneRadarSweep = 0;
+
+function renderDrone() {{
+  const T = getTheme();
+  topBar('DRONE REMOTE ID // ASTM F3411', C.amber);
+  droneRadarSweep += 0.05;
+  
+  // Tactical Radar Scope (Left half)
+  const rcx = 64, rcy = 82, rr_scope = 46;
+  ctx.fillStyle = T.panel; ctx.beginPath(); ctx.arc(rcx, rcy, rr_scope, 0, 7); ctx.fill();
+  ctx.strokeStyle = T.border; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(rcx, rcy, rr_scope, 0, 7); ctx.stroke();
+  ctx.beginPath(); ctx.arc(rcx, rcy, rr_scope * 0.66, 0, 7); ctx.stroke();
+  ctx.beginPath(); ctx.arc(rcx, rcy, rr_scope * 0.33, 0, 7); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(rcx - rr_scope, rcy); ctx.lineTo(rcx + rr_scope, rcy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(rcx, rcy - rr_scope); ctx.lineTo(rcx, rcy + rr_scope); ctx.stroke();
+  
+  // Rotating radar sweep arm
+  ctx.strokeStyle = 'rgba(255, 176, 0, 0.4)'; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(rcx, rcy);
+  ctx.lineTo(rcx + Math.cos(droneRadarSweep) * rr_scope, rcy + Math.sin(droneRadarSweep) * rr_scope);
+  ctx.stroke();
+  
+  // Operator center (dot)
+  ctx.fillStyle = T.primary; ctx.beginPath(); ctx.arc(rcx, rcy, 3, 0, 7); ctx.fill();
+  
+  // Target Drone Blip (offset bearing 48 deg)
+  const bx = rcx + 22, by = rcy - 20;
+  ctx.fillStyle = C.crimson; ctx.beginPath(); ctx.arc(bx, by, 4, 0, 7); ctx.fill();
+  ctx.strokeStyle = C.amber; ctx.beginPath(); ctx.arc(bx, by, 6 + Math.sin(droneRadarSweep * 4) * 2, 0, 7); ctx.stroke();
+  
+  // Right Telemetry Box
+  const tbX = 120, tbY = 32;
+  F(9, 'bold'); ctx.fillStyle = C.amber; ctx.fillText('UAS TARGET ACQUIRED', tbX, tbY + 10);
+  F(8); ctx.fillStyle = T.subtext; ctx.fillText('DISTANCE:', tbX, tbY + 24);
+  ctx.fillStyle = T.text; ctx.fillText(droneTarget.distM + 'm (BEARING 048)', tbX + 50, tbY + 24);
+  ctx.fillStyle = T.subtext; ctx.fillText('SIGNAL:', tbX, tbY + 36);
+  ctx.fillStyle = C.green; ctx.fillText(droneTarget.rssi + ' dBm [CH 6]', tbX + 50, tbY + 36);
+  ctx.fillStyle = T.subtext; ctx.fillText('PROTOCOL:', tbX, tbY + 48);
+  ctx.fillStyle = T.primary; ctx.fillText('ASTM F3411-22', tbX + 50, tbY + 48);
+  
+  // Full Telemetry Data Table
+  const dy = 140;
+  ctx.fillStyle = T.surface; rr(6, dy, 228, 156, 5); ctx.fill();
+  ctx.strokeStyle = T.cardBorder; rr(6, dy, 228, 156, 5); ctx.stroke();
+  
+  const rows = [
+    ['SERIAL / CAA ID', droneTarget.id, C.amber],
+    ['ALTITUDE (AGL)', droneTarget.altAgl + ' METERS', T.primary],
+    ['ALTITUDE (MSL)', droneTarget.altMsl + ' METERS', T.subtext],
+    ['UAS LOCATION', droneTarget.lat + ', ' + droneTarget.lon, T.text],
+    ['PILOT GCS POS', droneTarget.pilotLat + ', ' + droneTarget.pilotLon, C.green],
+    ['VELOCITY VECTOR', droneTarget.speed + ' @ ' + droneTarget.heading, T.primary],
+    ['EMITTER STATUS', 'BROADCASTING OPEN DRONE ID', C.green]
+  ];
+  
+  rows.forEach((r, idx) => {{
+    const py = dy + 18 + idx * 20;
+    F(8); ctx.fillStyle = T.subtext; ctx.fillText(r[0], 12, py);
+    F(8, 'bold'); ctx.fillStyle = r[2]; ctx.fillText(r[1], 102, py);
+    if (idx < rows.length - 1) {{
+      ctx.strokeStyle = T.border; ctx.beginPath(); ctx.moveTo(10, py + 4); ctx.lineTo(230, py + 4); ctx.stroke();
+    }}
+  }});
+  
+  bottomBar('SNAP:Lock Target CLICK:Radar Zoom MENU:Exit');
+}}
+
+// ==========================================
+// 4. EVIL CAPTIVE PORTAL SUITE
+// ==========================================
+let epActive = false;
+let epClients = 3;
+let epCreds = [
+  {{ user: 'admin@corporate.lan', pass: 'Spring#2026!', time: '13:41:20', ip: '192.168.4.2' }},
+  {{ user: 'guest_user@flight.com', pass: 'WifiAccess99', time: '13:42:04', ip: '192.168.4.5' }}
+];
+
+function renderEvilPortal() {{
+  const T = getTheme();
+  topBar('EVIL CAPTIVE PORTAL SUITE', C.crimson);
+  
+  // Status banner
+  const sy = 28;
+  ctx.fillStyle = epActive ? 'rgba(255, 0, 60, 0.15)' : T.surface;
+  rr(6, sy, 228, 52, 5); ctx.fill();
+  ctx.strokeStyle = epActive ? C.crimson : T.cardBorder;
+  rr(6, sy, 228, 52, 5); ctx.stroke();
+  
+  F(10, 'bold');
+  ctx.fillStyle = epActive ? C.crimson : T.subtext;
+  ctx.fillText(epActive ? '● ROGUE AP BROADCASTING LIVE' : '○ CAPTIVE PORTAL IDLE (STANDBY)', 14, sy + 16);
+  
+  F(9); ctx.fillStyle = T.text;
+  ctx.fillText('SSID: Free_Airport_HighSpeed_WiFi', 14, sy + 32);
+  ctx.fillStyle = T.subtext;
+  ctx.fillText('TEMPLATE: /EVILPORTAL/index.html', 14, sy + 44);
+  
+  // Client stats pill
+  ctx.fillStyle = epActive ? C.green : T.subtext;
+  ctx.fillText(`CLIENTS: ${{epActive ? epClients : 0}}  DNS REQ: ${{epActive ? 42 : 0}}`, 140, sy + 32);
+  
+  // Harvested Credential Console
+  const cy = 86;
+  ctx.fillStyle = T.panel; rr(6, cy, 228, 210, 5); ctx.fill();
+  ctx.strokeStyle = T.cardBorder; rr(6, cy, 228, 210, 5); ctx.stroke();
+  
+  F(9, 'bold'); ctx.fillStyle = C.amber;
+  ctx.fillText('HARVESTED CREDENTIALS LOG (/EVILPORTAL/creds.txt):', 12, cy + 16);
+  
+  epCreds.forEach((c, idx) => {{
+    const iy = cy + 26 + idx * 56;
+    ctx.fillStyle = T.surface; rr(10, iy, 220, 50, 4); ctx.fill();
+    ctx.strokeStyle = T.border; rr(10, iy, 220, 50, 4); ctx.stroke();
+    
+    F(8); ctx.fillStyle = T.subtext; ctx.fillText('USER:', 14, iy + 14);
+    F(8, 'bold'); ctx.fillStyle = T.primary; ctx.fillText(c.user, 50, iy + 14);
+    
+    F(8); ctx.fillStyle = T.subtext; ctx.fillText('PASS:', 14, iy + 28);
+    F(8, 'bold'); ctx.fillStyle = C.crimson; ctx.fillText(c.pass, 50, iy + 28);
+    
+    F(8); ctx.fillStyle = T.subtext; ctx.fillText(`IP: ${{c.ip}} | TIME: ${{c.time}}`, 14, iy + 42);
+  }});
+  
+  bottomBar('CLICK:Toggle Rogue AP SNAP:Deauth Target MENU:Exit');
+}}
+
+// ==========================================
+// 5. SETTINGS SCREEN & REBOOT MODAL
+// ==========================================
+let setSel = 1, setScroll = 0;
+let setConfirmErase = false, setYesErase = false;
+let setConfirmReboot = false, setYesReboot = false;
+let isRebooting = false, rebootStart = 0;
+
+function buildSettingsList() {{
+  const T = getTheme();
+  const themeN = ['CYBERPUNK', 'AMOLED', 'STEALTH', 'FIELD AMBER', 'EMERALD', 'SYNTHWAVE', 'SOLARIZED'];
+  const layoutN = ['DASHBOARD', '2x4 GRID', 'LIST STACK'];
+  const profN = ['STANDARD', 'STEALTH OPS', 'SNIFFER LAB'];
+  const startN = ['MAIN MENU', 'CAMERA', 'GALLERY', 'EXPLORER', 'NOTEPAD', 'GAMES', '2.4G NRF', 'WIFI 802.11', 'BLE SCAN', 'DRONE SNIFF', 'EVIL PORTAL', 'SUB-GHZ', 'INFRARED'];
+  const cpuN = ['240 MHz (TURBO)', '160 MHz (BALANCED)', '80 MHz (ECO)'];
+  const fpsN = ['60 FPS (SMOOTH)', '30 FPS (STANDARD)', '20 FPS (POWER SAVER)'];
+  const nrfPwrN = ['0 dBm (MAX)', '-6 dBm (HIGH)', '-12 dBm (MID)', '-18 dBm (LOW)'];
+  const nrfRateN = ['250 KBPS (LONG-RANGE)', '1 MBPS (STANDARD)', '2 MBPS (HIGH-SPEED)'];
+  const subFiltN = ['HIGH SENS (WIDE)', 'NOISE FILTER (50uS)', 'STRICT FILTER (100uS)'];
+  const irBoostN = ['TURBO BOOST (100mA)', 'NORMAL (50mA)'];
+  const buzzModeN = ['CHIRP PWM', 'CYBER TONES', 'SILENT MUTE'];
+  
+  return [
+    {{ h: 1, n: 'OPERATOR IDENTITY' }},
+    {{ id: 'callsign', n: 'Callsign', v: settings.callsign }},
+    {{ id: 'startMode', n: 'Boot Mode', v: startN[settings.startMode % startN.length] }},
+    {{ id: 'profile', n: 'Active Profile', v: profN[settings.profileMode % 3] }},
+    
+    {{ h: 1, n: 'THEME & UI STYLING' }},
+    {{ id: 'theme', n: 'Color Theme', v: themeN[settings.themePreset % 7] }},
+    {{ id: 'layout', n: 'Home Layout', v: layoutN[settings.menuLayout % 3] }},
+    
+    {{ h: 1, n: 'HARDWARE & POWER MANAGEMENT' }},
+    {{ id: 'cpu', n: 'ESP32 CPU Clock', v: cpuN[settings.cpuFreq === 80 ? 2 : (settings.cpuFreq === 160 ? 1 : 0)] }},
+    {{ id: 'fps', n: 'Engine FPS Cap', v: fpsN[settings.fpsCap === 20 ? 2 : (settings.fpsCap === 30 ? 1 : 0)] }},
+    {{ id: 'bright', n: 'TFT Backlight (SW)', v: settings.bright + '%' }},
+    {{ id: 'sound', n: 'Buzzer Feedback', v: buzzModeN[settings.buzzerMode % 3] }},
+    
+    {{ h: 1, n: 'RF & TRANSCEIVER TUNING' }},
+    {{ id: 'nrfPwr', n: 'NRF24 Tx Power', v: nrfPwrN[settings.nrfPwr % 4] }},
+    {{ id: 'nrfRate', n: 'NRF24 Data Rate', v: nrfRateN[settings.nrfRate % 3] }},
+    {{ id: 'subFilter', n: '433MHz Demod Filter', v: subFiltN[settings.subghzFilt % 3] }},
+    {{ id: 'irBoost', n: '940nm IR Blaster Drive', v: settings.irBoost ? irBoostN[0] : irBoostN[1] }},
+    
+    {{ h: 1, n: 'SMART CONFIG (.INI)' }},
+    {{ id: 'cfgExport', n: 'Export Config', v: 'SYNC >' }},
+    {{ id: 'cfgReload', n: 'Reload INI File', v: 'LOAD >' }},
+    
+    {{ h: 1, n: 'SYSTEM MAINTENANCE' }},
+    {{ id: 'telem', n: 'Octal PSRAM / Flash', v: '8192K / 16MB' }},
+    {{ id: 'reboot', n: 'Reboot Device', v: 'EXEC >' }},
+    {{ id: 'about', n: 'About / Hardware Info', v: 'OPEN >' }},
+    {{ id: 'reset', n: 'Reset Defaults', v: 'RUN >' }},
+    {{ id: 'save', n: 'Save & Exit', v: 'ENTER >' }}
+  ];
+}}
+
+function renderSettings() {{
+  const T = getTheme();
+  topBar('SYSTEM & SETTINGS', T.accent);
+  
+  const items = buildSettingsList();
+  const visible = 11;
+  
+  if (setSel < setScroll) setScroll = setSel;
+  if (setSel >= setScroll + visible) setScroll = setSel - visible + 1;
+  
+  const sy = 24, rh = 23;
+  for (let r = 0; r < visible; r++) {{
+    const idx = setScroll + r; if (idx >= items.length) break;
+    const it = items[idx], y = sy + r * (rh + 2), sel = (idx === setSel);
+    
+    if (it.h) {{
+      // Header item
+      ctx.fillStyle = T.panel; rr(6, y, 228, rh, 3); ctx.fill();
+      ctx.fillStyle = T.accent; F(8, 'bold'); ctx.fillText('// ' + it.n, 12, y + 15);
+      continue;
+    }}
+    
+    ctx.fillStyle = sel ? T.cardSel : T.surface; rr(6, y, 228, rh, 3); ctx.fill();
+    ctx.strokeStyle = sel ? T.primary : T.cardBorder; rr(6, y, 228, rh, 3); ctx.stroke();
+    
+    if (sel) {{
+      ctx.fillStyle = T.primary; rr(6, y + 2, 3, rh - 4, 1); ctx.fill();
+    }}
+    
+    F(9); ctx.fillStyle = sel ? T.text : T.primary; ctx.fillText(it.n, 14, y + 15);
+    F(9, 'bold'); ctx.fillStyle = sel ? T.accent : T.subtext;
+    const vw = ctx.measureText(it.v).width;
+    ctx.fillText(it.v, 226 - vw, y + 15);
+  }}
+  
+  // Reboot Confirm Modal Dialog
+  if (setConfirmReboot) {{
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)'; ctx.fillRect(0, 0, 240, 320);
+    const mx = 20, my = 100, mw = 200, mh = 100;
+    ctx.fillStyle = T.panel; rr(mx, my, mw, mh, 8); ctx.fill();
+    ctx.strokeStyle = C.crimson; rr(mx, my, mw, mh, 8); ctx.stroke();
+    
+    F(11, 'bold'); ctx.fillStyle = C.crimson; centerText('REBOOT DEVICE', my + 24, C.crimson, 11);
+    F(9); ctx.fillStyle = T.text; centerText('Restart Axion ESP32-S3?', my + 44, T.text, 9);
+    
+    const by = my + 60;
+    // NO button
+    ctx.fillStyle = !setYesReboot ? T.cardSel : T.surface; rr(mx + 20, by, 70, 24, 4); ctx.fill();
+    ctx.strokeStyle = !setYesReboot ? T.primary : T.border; rr(mx + 20, by, 70, 24, 4); ctx.stroke();
+    F(9, 'bold'); ctx.fillStyle = !setYesReboot ? T.text : T.subtext; ctx.fillText('NO', mx + 46, by + 16);
+    
+    // YES button
+    ctx.fillStyle = setYesReboot ? C.crimson : T.surface; rr(mx + 110, by, 70, 24, 4); ctx.fill();
+    ctx.strokeStyle = setYesReboot ? '#FFF' : T.border; rr(mx + 110, by, 70, 24, 4); ctx.stroke();
+    ctx.fillStyle = setYesReboot ? '#FFF' : T.subtext; ctx.fillText('YES', mx + 134, by + 16);
+  }}
+  
+  bottomBar('UP/DN:Select LEFT/RG:Change CLICK:Apply MENU:Exit');
+}}
+
+// ==========================================
+// 6. REBOOTING ANIMATION (Simulated esp_restart)
+// ==========================================
+function renderRebooting(ts) {{
+  if (!rebootStart) rebootStart = ts;
+  const elapsed = ts - rebootStart;
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 240, 320);
+  
+  if (elapsed < 300) {{
+    // White flash
+    ctx.fillStyle = '#FFF'; ctx.fillRect(0, 0, 240, 320);
+  }} else if (elapsed < 1200) {{
+    F(10); ctx.fillStyle = C.green;
+    centerText('CPU RESETTING: ESP32-S3 PRO CPU', 140, C.green, 10);
+    centerText('FLUSHING SD CACHE...', 160, C.grey, 9);
+  }} else {{
+    isRebooting = false;
+    bootStart = 0;
+    mode = 'BOOT';
+  }}
+}}
+
+// ==========================================
+// 7. PLACEHOLDER ENGINE SCREENS
+// ==========================================
+function renderCamera() {{
+  const T = getTheme();
+  topBar('CAMERA VIEWFINDER', C.cyan);
+  ctx.fillStyle = '#0a1420'; ctx.fillRect(0, 24, 240, 278);
+  ctx.strokeStyle = C.cyan; ctx.strokeRect(40, 80, 160, 140);
+  ctx.beginPath(); ctx.moveTo(120, 140); ctx.lineTo(120, 160); ctx.moveTo(110, 150); ctx.lineTo(130, 150); ctx.stroke();
+  F(10); ctx.fillStyle = C.cyan; centerText('OV3660 3MP LIVE SENSOR', 240, C.cyan, 10);
+  bottomBar('SNAP:Photo HOLD:Record MENU:Exit');
+}}
+
+function renderGallery() {{
+  topBar('PHOTO & VIDEO GALLERY', C.white);
+  ctx.fillStyle = '#080808'; ctx.fillRect(0, 24, 240, 278);
+  F(11); ctx.fillStyle = C.white; centerText('SAMPLE_IMAGE_001.JPG', 160, C.white, 11);
+  bottomBar('LEFT/RIGHT:Browse SNAP:Delete MENU:Exit');
+}}
+
+function renderFiles() {{
+  topBar('SD FILE EXPLORER', C.green);
+  const files = ['/DCIM', '/NOTEPAD', '/PCAP', '/DRONE_LOGS', '/EVILPORTAL', 'axion_config.ini'];
+  files.forEach((f, idx) => {{
+    ctx.fillStyle = idx === 0 ? getTheme().cardSel : getTheme().surface;
+    rr(6, 30 + idx * 26, 228, 22, 4); ctx.fill();
+    F(9); ctx.fillStyle = C.green; ctx.fillText(f, 16, 45 + idx * 26);
+  }});
+  bottomBar('UP/DN:Select CLICK:Open MENU:Exit');
+}}
+
+function renderNotepad() {{
+  topBar('NOTEPAD TEXT EDITOR', C.cyan);
+  ctx.fillStyle = '#070e17'; ctx.fillRect(6, 28, 228, 270);
+  F(9); ctx.fillStyle = C.cyan;
+  ctx.fillText('NOTE_001.TXT (SAVED)', 14, 44);
+  ctx.fillStyle = '#FFF';
+  ctx.fillText('> AXION CYBER TOOL SYSTEM TEST', 14, 64);
+  ctx.fillText('> OCTAL PSRAM VERIFIED OK', 14, 78);
+  bottomBar('TYPE:Joystick SNAP:Save MENU:Exit');
+}}
+
+function renderGames() {{
+  topBar('CYBER RETRO MINI-GAMES', C.green);
+  const games = ['1. CYBER SNAKE', '2. NEON PONG', '3. CYBER FLAPPY', '4. NEON BREAKOUT'];
+  games.forEach((g, idx) => {{
+    ctx.fillStyle = idx === 0 ? getTheme().cardSel : getTheme().surface;
+    rr(10, 50 + idx * 45, 220, 36, 6); ctx.fill();
+    F(11, 'bold'); ctx.fillStyle = C.green; ctx.fillText(g, 24, 72 + idx * 45);
+  }});
+  bottomBar('UP/DN:Select CLICK:Start MENU:Exit');
+}}
+
+function renderNrf() {{
+  topBar('2.4GHz RF ANALYZER', C.amber);
+  // Spectrum graph
+  ctx.strokeStyle = C.cyan; ctx.strokeRect(6, 28, 228, 120);
+  for (let i = 0; i < 126; i++) {{
+    const h = (Math.sin(i * 0.1 + Date.now() * 0.003) * 0.5 + 0.5) * 80 + 10;
+    ctx.fillStyle = h > 60 ? C.crimson : (h > 35 ? C.amber : C.green);
+    ctx.fillRect(8 + i * 1.76, 146 - h, 1.4, h);
+  }}
+  F(9); ctx.fillStyle = C.amber; ctx.fillText('CHANNELS 0..125 (2400..2525 MHz)', 12, 164);
+  bottomBar('CLICK:Hold SNAP:Reset MENU:Exit');
+}}
+
+function renderWifi() {{
+  topBar('WI-FI 802.11 MONITOR', C.green);
+  const aps = [
+    ['SkyNet_5G', 'CH 6', '-54 dBm', 'WPA3'],
+    ['Target_Guest', 'CH 1', '-68 dBm', 'WPA2'],
+    ['Drone_C2_Link', 'CH 11', '-61 dBm', 'OPEN']
+  ];
+  aps.forEach((a, idx) => {{
+    ctx.fillStyle = idx === 0 ? getTheme().cardSel : getTheme().surface;
+    rr(6, 30 + idx * 36, 228, 30, 4); ctx.fill();
+    F(10, 'bold'); ctx.fillStyle = C.green; ctx.fillText(a[0], 12, 45 + idx * 36);
+    F(8); ctx.fillStyle = C.grey; ctx.fillText(`${{a[1]}}  ${{a[2]}}  ${{a[3]}}`, 12, 56 + idx * 36);
+  }});
+  bottomBar('SNAP:Deauth Target CLICK:Pcap MENU:Exit');
+}}
+
+function renderBle() {{
+  topBar('BLE PROXIMITY SCANNER', C.crimson);
+  const devs = [
+    ['Apple AirTag #01', 'RSSI -58 dBm', 'PROXIMITY: 2.1m'],
+    ['Samsung SmartTag', 'RSSI -74 dBm', 'PROXIMITY: 6.8m'],
+    ['Flipper Zero BLE', 'RSSI -62 dBm', 'PROXIMITY: 3.4m']
+  ];
+  devs.forEach((d, idx) => {{
+    ctx.fillStyle = idx === 0 ? getTheme().cardSel : getTheme().surface;
+    rr(6, 30 + idx * 36, 228, 30, 4); ctx.fill();
+    F(10, 'bold'); ctx.fillStyle = C.crimson; ctx.fillText(d[0], 12, 45 + idx * 36);
+    F(8); ctx.fillStyle = C.grey; ctx.fillText(`${{d[1]}}  ${{d[2]}}`, 12, 56 + idx * 36);
+  }});
+  bottomBar('SNAP:FoxHunt CLICK:Details MENU:Exit');
+}}
+
+function renderSub() {{
+  topBar('SUB-GHZ 433MHz ENGINE', C.amber);
+  ctx.strokeStyle = C.cyan; ctx.strokeRect(6, 30, 228, 140);
+  F(9); ctx.fillStyle = C.cyan; ctx.fillText('PULSE TRAIN OSCILLOSCOPE:', 12, 46);
+  ctx.strokeStyle = C.green; ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  let x = 12, y = 100;
+  for (let i = 0; i < 24; i++) {{
+    ctx.moveTo(x, y); ctx.lineTo(x + 5, y - 30); ctx.lineTo(x + 10, y);
+    x += 10;
+  }}
+  ctx.stroke();
+  bottomBar('SNAP:Sniff CLICK:Replay MENU:Exit');
+}}
+
+function renderIr() {{
+  topBar('INFRARED TRANSCEIVER', C.cyan);
+  F(10); ctx.fillStyle = C.cyan; centerText('TSOP RECEIVER ARMED // GPIO45', 100, C.cyan, 10);
+  centerText('POINT REMOTE CONTROL TO CLONE', 120, C.grey, 9);
+  bottomBar('SNAP:Universal Power CLICK:Send MENU:Exit');
+}}
+
+function renderGuide() {{
+  topBar('DEVICE FEATURE GUIDE', C.cyan);
+  F(11, 'bold'); ctx.fillStyle = C.cyan; ctx.fillText('1. HARDWARE CONTROLS', 12, 45);
+  F(9); ctx.fillStyle = '#FFF';
+  ctx.fillText('JOYSTICK : Navigate cards, lists and editors', 12, 65);
+  ctx.fillText('SNAP BTN : Capture photos, sniffs and deauths', 12, 80);
+  ctx.fillText('MENU BTN : Instant return to Main Menu', 12, 95);
+  bottomBar('LEFT/RIGHT:Pages MENU:Exit');
+}}
+
+// ==========================================
+// 8. MAIN RENDER LOOP
+// ==========================================
+let lastTs = 0, frameCount = 0, lastFpsUpdate = 0;
+const fpsEl = document.getElementById('fpsCounter');
+
+function render(ts) {{
+  const T = getTheme();
+  
+  if (isRebooting) {{
+    renderRebooting(ts);
+    requestAnimationFrame(render);
+    return;
+  }}
+  
+  ctx.fillStyle = T.bg; ctx.fillRect(0, 0, 240, 320);
+  
+  if (mode === 'BOOT') renderBoot(ts);
+  else if (mode === 'MENU') renderMenu();
+  else if (mode === 'CAMERA') renderCamera();
+  else if (mode === 'GALLERY') renderGallery();
+  else if (mode === 'FILES') renderFiles();
+  else if (mode === 'NOTEPAD') renderNotepad();
+  else if (mode === 'GAMES') renderGames();
+  else if (mode === 'NRF') renderNrf();
+  else if (mode === 'WIFI') renderWifi();
+  else if (mode === 'BLE') renderBle();
+  else if (mode === 'DRONE') renderDrone();
+  else if (mode === 'EVILPORTAL') renderEvilPortal();
+  else if (mode === 'SUBGHZ') renderSub();
+  else if (mode === 'IR') renderIr();
+  else if (mode === 'GUIDE') renderGuide();
+  else if (mode === 'SETTINGS') renderSettings();
+  
+  if (mode !== 'BOOT' && mode !== 'CAMERA') applyBrightness();
+  
+  // FPS calculation
+  frameCount++;
+  if (ts - lastFpsUpdate >= 1000) {{
+    const curFps = Math.round(frameCount * 1000 / (ts - lastFpsUpdate));
+    if (fpsEl) fpsEl.textContent = curFps + ' FPS';
+    frameCount = 0;
+    lastFpsUpdate = ts;
+  }}
+  
+  requestAnimationFrame(render);
+}}
+
+// ==========================================
+// 9. INPUT CONTROLLER & NAVIGATION
+// ==========================================
+function handleInput(btn) {{
+  if (mode === 'BOOT') return;
+  playBuzzer(1600, 6);
+  
+  if (mode === 'MENU') {{
+    if (settings.menuLayout === 1) {{
+      // 2x4 Grid Navigation
+      if (btn === 'UP') menuSel = (menuSel - 2 + MENU.length) % MENU.length;
+      else if (btn === 'DOWN') menuSel = (menuSel + 2) % MENU.length;
+      else if (btn === 'LEFT') menuSel = (menuSel - 1 + MENU.length) % MENU.length;
+      else if (btn === 'RIGHT') menuSel = (menuSel + 1) % MENU.length;
+    }} else {{
+      if (btn === 'UP') menuSel = (menuSel - 1 + MENU.length) % MENU.length;
+      else if (btn === 'DOWN') menuSel = (menuSel + 1) % MENU.length;
+    }}
+    
+    if (btn === 'CLICK' || btn === 'SHUTTER') {{
+      mode = MENU[menuSel].mode;
+      playBuzzer(2000, 10);
+    }}
+    return;
+  }}
+  
+  if (mode === 'SETTINGS') {{
+    if (setConfirmReboot) {{
+      if (btn === 'LEFT' || btn === 'RIGHT') setYesReboot = !setYesReboot;
+      else if (btn === 'CLICK') {{
+        if (setYesReboot) {{
+          playBuzzer(2600, 40);
+          setConfirmReboot = false;
+          isRebooting = true;
+          rebootStart = 0;
+          return;
+        }}
+        setConfirmReboot = false;
+      }} else if (btn === 'MENU') setConfirmReboot = false;
+      return;
+    }}
+    
+    const items = buildSettingsList();
+    if (btn === 'MENU') {{ mode = 'MENU'; return; }}
+    
+    if (btn === 'UP') {{
+      do {{ setSel = (setSel - 1 + items.length) % items.length; }} while (items[setSel].h);
+    }} else if (btn === 'DOWN') {{
+      do {{ setSel = (setSel + 1) % items.length; }} while (items[setSel].h);
+    }}
+    
+    const curId = items[setSel].id;
+    const dir = btn === 'RIGHT' ? 1 : (btn === 'LEFT' ? -1 : 0);
+    
+    if (dir !== 0 && curId) {{
+      if (curId === 'theme') settings.themePreset = (settings.themePreset + dir + 7) % 7;
+      else if (curId === 'layout') settings.menuLayout = (settings.menuLayout + dir + 3) % 3;
+      else if (curId === 'profile') {{
+        settings.profileMode = (settings.profileMode + dir + 3) % 3;
+        if (settings.profileMode === 1) {{ settings.bright = 25; settings.sound = false; }}
+        else if (settings.profileMode === 2) {{ settings.bright = 85; settings.sound = true; settings.hop = 1; }}
+      }}
+      else if (curId === 'cpu') {{
+        const freqs = [240, 160, 80];
+        let idx = freqs.indexOf(settings.cpuFreq);
+        if (idx === -1) idx = 0;
+        settings.cpuFreq = freqs[(idx + dir + 3) % 3];
+      }}
+      else if (curId === 'fps') {{
+        const caps = [60, 30, 20];
+        let idx = caps.indexOf(settings.fpsCap);
+        if (idx === -1) idx = 0;
+        settings.fpsCap = caps[(idx + dir + 3) % 3];
+      }}
+      else if (curId === 'bright') settings.bright = Math.max(10, Math.min(100, settings.bright + dir * 10));
+      else if (curId === 'sound') settings.buzzerMode = (settings.buzzerMode + dir + 3) % 3;
+      else if (curId === 'nrfPwr') settings.nrfPwr = (settings.nrfPwr + dir + 4) % 4;
+      else if (curId === 'nrfRate') settings.nrfRate = (settings.nrfRate + dir + 3) % 3;
+      else if (curId === 'subFilter') settings.subghzFilt = (settings.subghzFilt + dir + 3) % 3;
+      else if (curId === 'irBoost') settings.irBoost = !settings.irBoost;
+      else if (curId === 'startMode') settings.startMode = (settings.startMode + dir + 13) % 13;
+    }}
+    
+    if (btn === 'CLICK') {{
+      if (curId === 'theme') settings.themePreset = (settings.themePreset + 1) % 7;
+      else if (curId === 'layout') settings.menuLayout = (settings.menuLayout + 1) % 3;
+      else if (curId === 'profile') {{
+        settings.profileMode = (settings.profileMode + 1) % 3;
+        if (settings.profileMode === 1) {{ settings.bright = 25; settings.sound = false; }}
+        else if (settings.profileMode === 2) {{ settings.bright = 85; settings.sound = true; settings.hop = 1; }}
+      }}
+      else if (curId === 'cpu') {{
+        const freqs = [240, 160, 80];
+        let idx = freqs.indexOf(settings.cpuFreq);
+        settings.cpuFreq = freqs[(idx + 1) % 3];
+      }}
+      else if (curId === 'fps') {{
+        const caps = [60, 30, 20];
+        let idx = caps.indexOf(settings.fpsCap);
+        settings.fpsCap = caps[(idx + 1) % 3];
+      }}
+      else if (curId === 'sound') settings.buzzerMode = (settings.buzzerMode + 1) % 3;
+      else if (curId === 'nrfPwr') settings.nrfPwr = (settings.nrfPwr + 1) % 4;
+      else if (curId === 'nrfRate') settings.nrfRate = (settings.nrfRate + 1) % 3;
+      else if (curId === 'subFilter') settings.subghzFilt = (settings.subghzFilt + 1) % 3;
+      else if (curId === 'irBoost') settings.irBoost = !settings.irBoost;
+      else if (curId === 'reboot') {{
+        setConfirmReboot = true;
+        setYesReboot = false;
+        playBuzzer(1800, 10);
+      }}
+      else if (curId === 'save') {{ mode = 'MENU'; }}
+    }}
+    return;
+  }}
+  
+  if (mode === 'DRONE') {{
+    if (btn === 'MENU') mode = 'MENU';
+    else if (btn === 'SHUTTER') playBuzzer(2200, 20);
+    return;
+  }}
+  
+  if (mode === 'EVILPORTAL') {{
+    if (btn === 'MENU') mode = 'MENU';
+    else if (btn === 'CLICK') {{ epActive = !epActive; playBuzzer(2000, 15); }}
+    else if (btn === 'SHUTTER') playBuzzer(2400, 25);
+    return;
+  }}
+  
+  if (btn === 'MENU') {{
+    mode = 'MENU';
+    return;
+  }}
+}}
+
+// Keyboard event listener
+window.addEventListener('keydown', e => {{
+  if (e.key === 'ArrowUp') {{ e.preventDefault(); handleInput('UP'); }}
+  else if (e.key === 'ArrowDown') {{ e.preventDefault(); handleInput('DOWN'); }}
+  else if (e.key === 'ArrowLeft') {{ e.preventDefault(); handleInput('LEFT'); }}
+  else if (e.key === 'ArrowRight') {{ e.preventDefault(); handleInput('RIGHT'); }}
+  else if (e.key === 'Enter' || e.key === ' ') {{ e.preventDefault(); handleInput('CLICK'); }}
+  else if (e.key.toLowerCase() === 's') {{ e.preventDefault(); handleInput(e.shiftKey ? 'HOLD' : 'SHUTTER'); }}
+  else if (e.key.toLowerCase() === 'm' || e.key === 'Escape') {{ e.preventDefault(); handleInput('MENU'); }}
+}});
+
+requestAnimationFrame(render);
+</script>
+</body>
+</html>
+'''
+    OUT_FILE.write_text(html_template, encoding="utf-8")
+    print(f"Successfully generated clean HD simulator at {OUT_FILE} ({len(html_template)} bytes)")
+
+if __name__ == "__main__":
+    main()

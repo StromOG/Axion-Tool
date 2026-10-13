@@ -2152,6 +2152,7 @@ static void runIrMode(InputEvent evt) {
 enum SetId {
     SID_HDR_IDENTITY, SID_CALLSIGN, SID_STARTMODE, SID_PROFILE,
     SID_HDR_AESTHETICS, SID_THEME, SID_LAYOUT,
+    SID_HDR_HARDWARE, SID_CPU_SPEED, SID_FPS_LIMIT, SID_NRF_PWR, SID_NRF_RATE, SID_SUBGHZ_FILT, SID_IR_BOOST, SID_BUZZER_MODE,
     SID_HDR_DISPLAY, SID_BRIGHT, SID_SOUND,
     SID_HDR_CAMERA, SID_SCENE, SID_STILLRES, SID_STILLQ, SID_CBRI, SID_CCON, SID_CSAT, SID_CSHARP, SID_CDEN, SID_CEV, SID_CGAIN, SID_CWB, SID_PREVRES, SID_VFLIP, SID_HMIR, SID_GRID,
     SID_HDR_NAMING, SID_PREFIX, SID_AUTOINDEX, SID_PROMPTNAME, SID_FORMAT,
@@ -2168,7 +2169,7 @@ static const char* wbNamesS[]      = { "AUTO", "SUNNY", "CLOUDY", "OFFICE", "HOM
 static const char* gainNamesS[]    = { "2X", "4X", "8X", "16X", "32X", "64X", "128X" };
 static const char* startModeNames[] = { "MAIN MENU", "CAMERA", "GALLERY", "EXPLORER", "NOTEPAD", "GAMES", "2.4G NRF", "WIFI 802.11", "BLE SCAN", "DRONE RADAR", "FOX HUNT", "SKIMMER", "SUB-GHZ", "INFRARED" };
 static const int STARTMODE_COUNT = sizeof(startModeNames) / sizeof(startModeNames[0]);
-static const char* themeNames[] = { "CYBERPUNK", "STEALTH", "FIELD AMBER" };
+static const char* themeNames[] = { "CYBERPUNK", "AMOLED", "STEALTH", "FIELD AMBER", "EMERALD", "SYNTHWAVE", "SOLARIZED" };
 static const char* layoutNames[] = { "DASHBOARD", "2x3 GRID", "LIST STACK" };
 static const char* profileNames[] = { "STANDARD", "STEALTH OPS", "SNIFFER LAB" };
 
@@ -2206,9 +2207,23 @@ static void runSettingsMode(InputEvent evt) {
 
     setRow(SID_HDR_AESTHETICS, "THEME & UI DESIGN", "", true);
     uint8_t th = SettingsManager::getThemePreset();
-    setRow(SID_THEME, "Color Theme", themeNames[th % 3], false);
+    setRow(SID_THEME, "Color Theme", themeNames[th % 7], false);
     uint8_t ly = SettingsManager::getMenuLayout();
     setRow(SID_LAYOUT, "Home Layout", layoutNames[ly % 3], false);
+
+    setRow(SID_HDR_HARDWARE, "HARDWARE & RF TUNING", "", true);
+    snprintf(tmp, sizeof(tmp), "%u MHz", SettingsManager::getCpuSpeedMHz());
+    setRow(SID_CPU_SPEED, "ESP32 CPU Freq", tmp, false);
+    snprintf(tmp, sizeof(tmp), "%u FPS", SettingsManager::getFrameRateLimit());
+    setRow(SID_FPS_LIMIT, "Display FPS Cap", tmp, false);
+    static const char* nrfPwrNames[] = { "0dBm MAX", "-6dBm HIGH", "-12dBm MID", "-18dBm LOW" };
+    setRow(SID_NRF_PWR, "NRF24 Tx Power", nrfPwrNames[SettingsManager::getNrfPower() % 4], false);
+    static const char* nrfRateNames[] = { "250 kbps", "1 Mbps", "2 Mbps" };
+    setRow(SID_NRF_RATE, "NRF24 Data Rate", nrfRateNames[SettingsManager::getNrfDataRate() % 3], false);
+    setRow(SID_SUBGHZ_FILT, "433MHz Demod", SettingsManager::getSubGhzFilter() ? "FILTERED" : "HIGH SENS", false);
+    setRow(SID_IR_BOOST, "IR Blaster Drive", SettingsManager::getIrBoost() ? "TURBO 100mA" : "NORMAL 50mA", false);
+    static const char* bzNames[] = { "SUBTLE CHIRP", "CYBER TONES", "STEALTH MUTE" };
+    setRow(SID_BUZZER_MODE, "Buzzer Mode", bzNames[SettingsManager::getBuzzerMode() % 3], false);
 
     setRow(SID_HDR_DISPLAY, "DISPLAY & AUDIO", "", true);
     snprintf(tmp, sizeof(tmp), "%d%%", SettingsManager::getBrightness()); setRow(SID_BRIGHT, "Brightness (SW)", tmp, false);
@@ -2330,7 +2345,7 @@ static void runSettingsMode(InputEvent evt) {
             }
             case SID_THEME: {
                 int t = (int)SettingsManager::getThemePreset() + dir;
-                if (t < 0) t = 2; else if (t > 2) t = 0;
+                if (t < 0) t = THEME_PRESET_COUNT - 1; else if (t >= THEME_PRESET_COUNT) t = 0;
                 SettingsManager::setThemePreset((uint8_t)t);
                 break;
             }
@@ -2338,6 +2353,51 @@ static void runSettingsMode(InputEvent evt) {
                 int l = (int)SettingsManager::getMenuLayout() + dir;
                 if (l < 0) l = 2; else if (l > 2) l = 0;
                 SettingsManager::setMenuLayout((uint8_t)l);
+                break;
+            }
+            case SID_CPU_SPEED: {
+                uint16_t cur = SettingsManager::getCpuSpeedMHz();
+                if (dir > 0) {
+                    if (cur == 80) SettingsManager::setCpuSpeedMHz(160);
+                    else if (cur == 160) SettingsManager::setCpuSpeedMHz(240);
+                    else SettingsManager::setCpuSpeedMHz(80);
+                } else {
+                    if (cur == 240) SettingsManager::setCpuSpeedMHz(160);
+                    else if (cur == 160) SettingsManager::setCpuSpeedMHz(80);
+                    else SettingsManager::setCpuSpeedMHz(240);
+                }
+                break;
+            }
+            case SID_FPS_LIMIT: {
+                uint8_t f = SettingsManager::getFrameRateLimit();
+                if (dir > 0) SettingsManager::setFrameRateLimit(f == 20 ? 30 : (f == 30 ? 60 : 20));
+                else SettingsManager::setFrameRateLimit(f == 60 ? 30 : (f == 30 ? 20 : 60));
+                break;
+            }
+            case SID_NRF_PWR: {
+                int p = (int)SettingsManager::getNrfPower() + dir;
+                if (p < 0) p = 3; else if (p > 3) p = 0;
+                SettingsManager::setNrfPower((uint8_t)p);
+                break;
+            }
+            case SID_NRF_RATE: {
+                int r = (int)SettingsManager::getNrfDataRate() + dir;
+                if (r < 0) r = 2; else if (r > 2) r = 0;
+                SettingsManager::setNrfDataRate((uint8_t)r);
+                break;
+            }
+            case SID_SUBGHZ_FILT: {
+                SettingsManager::setSubGhzFilter((SettingsManager::getSubGhzFilter() + 1) % 2);
+                break;
+            }
+            case SID_IR_BOOST: {
+                SettingsManager::setIrBoost(!SettingsManager::getIrBoost());
+                break;
+            }
+            case SID_BUZZER_MODE: {
+                int b = (int)SettingsManager::getBuzzerMode() + dir;
+                if (b < 0) b = 2; else if (b > 2) b = 0;
+                SettingsManager::setBuzzerMode((uint8_t)b);
                 break;
             }
             case SID_BRIGHT: SettingsManager::setBrightness(SettingsManager::getBrightness() + dir * 10); break;

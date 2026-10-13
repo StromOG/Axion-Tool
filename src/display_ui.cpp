@@ -91,7 +91,19 @@ void DisplayUI::clear(uint16_t color) {
 UITheme DisplayUI::getTheme() {
     uint8_t preset = SettingsManager::getThemePreset();
     UITheme t;
-    if (preset == THEME_STEALTH) {
+    if (preset == THEME_AMOLED) {
+        // Pure Pitch Black AMOLED (Zero-glow true black with vivid Neon Emerald & Crimson)
+        t.bg         = 0x0000; // Pitch Black
+        t.panel      = 0x0000; // Pitch Black
+        t.surface    = 0x0841; // Ultra-deep Carbon (#0C0C0C)
+        t.cardSel    = 0x18C3; // Deep Focus Slate (#181818)
+        t.cardBorder = 0x2104; // Minimal Rim (#202020)
+        t.primary    = 0x07F3; // Neon Emerald (#00FF9D)
+        t.accent     = 0xF80A; // Vivid Neon Crimson (#FF0055)
+        t.text       = 0xFFFF; // Pure White
+        t.subtext    = 0x8410; // Slate Grey (#808080)
+        t.border     = 0x2965; // Muted Border (#282828)
+    } else if (preset == THEME_STEALTH) {
         // Clean Minimalist Stealth (Matte Carbon Graphite & Pure Titanium White)
         t.bg         = 0x0841; // Deep Carbon (#0D1117)
         t.panel      = 0x10A2; // Matte Slate (#161B22)
@@ -99,7 +111,7 @@ UITheme DisplayUI::getTheme() {
         t.cardSel    = 0x2967; // Active Focus (#30363D)
         t.cardBorder = 0x31E9; // Crisp Rim (#384250)
         t.primary    = 0xFFFF; // Titanium White
-        t.accent     = 0xC618; // Cold Platinum Silver (#C9D1D9)
+        t.accent     = 0x5D5F; // Cool Ice Blue (#58A6FF)
         t.text       = 0xFFFF; // Pure White
         t.subtext    = 0x8C71; // Midtone Grey (#8B949E)
         t.border     = 0x2125;
@@ -107,14 +119,50 @@ UITheme DisplayUI::getTheme() {
         // High-Visibility Tactical Field Deck (Obsidian & Phosphor Amber/ODR Green)
         t.bg         = 0x0000; // Pitch Black
         t.panel      = 0x1080; // Dark Military Amber Tint (#1A1100)
-        t.surface    = 0x18C0; // Deep Bronze Slate
-        t.cardSel    = 0x3180; // Active Glow Bronze
-        t.cardBorder = 0x4A00; // Amber Outline (#996600)
-        t.primary    = THEME_AMBER; // Phosphor Amber
-        t.accent     = THEME_GREEN; // Tactical ODR Green
+        t.surface    = 0x18C0; // Deep Bronze Slate (#241800)
+        t.cardSel    = 0x3180; // Active Glow Bronze (#3A2600)
+        t.cardBorder = 0x4A00; // Amber Outline (#5A3B00)
+        t.primary    = THEME_AMBER; // Phosphor Amber (#FFB000)
+        t.accent     = THEME_GREEN; // Tactical ODR Green (#39FF14)
         t.text       = 0xFFE0; // High-Luminance Amber White
-        t.subtext    = 0xCE60; // Muted Amber
-        t.border     = THEME_AMBER;
+        t.subtext    = 0x9480; // Muted Amber (#997300)
+        t.border     = 0x6300;
+    } else if (preset == THEME_EMERALD) {
+        // Retro Pip-Boy Hacker Terminal (Deep Forest Black & High-Luminance Phosphor Green)
+        t.bg         = 0x0080; // Terminal Obsidian (#020D04)
+        t.panel      = 0x0100; // Forest Black (#041508)
+        t.surface    = 0x0922; // Phosphor Wells (#0A2410)
+        t.cardSel    = 0x1264; // Glow Selection (#12381A)
+        t.cardBorder = 0x1B86; // Matrix Outline (#1A4822)
+        t.primary    = 0x07E0; // Phosphor Green (#00FF66)
+        t.accent     = 0x3FE0; // Neon Lime Accent (#7CFF00)
+        t.text       = 0xE7F3; // Mint White (#E0FFE8)
+        t.subtext    = 0x54C8; // Forest Grey (#529E65)
+        t.border     = 0x0BA2;
+    } else if (preset == THEME_SYNTHWAVE) {
+        // Outrun Cyber Synthwave (Midnight Abyss, Electric Violet, Hot Pink & Cyber Cyan)
+        t.bg         = 0x0843; // Deep Abyss (#0B0819)
+        t.panel      = 0x1085; // Violet Shadow (#120D26)
+        t.surface    = 0x18E8; // Midnight Surface (#1E1638)
+        t.cardSel    = 0x296E; // Neon Violet Card (#322254)
+        t.cardBorder = 0x4172; // Ultraviolet Rim (#452C70)
+        t.primary    = 0xAF3F; // Electric Violet (#B026FF)
+        t.accent     = 0xF950; // Neon Hot Pink (#FF2A85)
+        t.text       = 0xFFFF; // Pure White
+        t.subtext    = 0x8BCF; // Soft Lavender (#9680B8)
+        t.border     = 0x073F; // Cyber Cyan (#00E5FF)
+    } else if (preset == THEME_SOLARIZED) {
+        // Solarized Dark Tactical (Subdued Sea Green Base, Solarized Amber & Cyan)
+        t.bg         = 0x0146; // Base 03 (#002B36)
+        t.panel      = 0x01A8; // Base 02 (#073642)
+        t.surface    = 0x0A0B; // Elevated Surface (#094857)
+        t.cardSel    = 0x128E; // Active Select (#145A6B)
+        t.cardBorder = 0x2B73; // Subtle Rim (#2B7283)
+        t.primary    = 0x2D13; // Solarized Cyan (#2AA198)
+        t.accent     = 0xB440; // Solarized Amber (#B58900)
+        t.text       = 0xEF5A; // Warm White (#EEE8D5)
+        t.subtext    = 0x94D2; // Base 0 (#93A1A1)
+        t.border     = 0x245A; // Solarized Blue (#268BD2)
     } else {
         // Tactical Cyberpunk (Obsidian, Hyper Cyan, Flare Amber) - Default
         t.bg         = THEME_BG;
@@ -176,8 +224,8 @@ void DisplayUI::endFrame() {
 
 void DisplayUI::drawIcon(int x, int y, uint8_t iconId, uint16_t fgColor, uint16_t bgColor) {
     if (iconId >= ICON_COUNT) return;
-    // Icons use inverted XBM (bit 0 = foreground); swap colors to render correctly.
-    D->drawXBitmap(x, y, axion_icons[iconId], ICON_W, ICON_H, bgColor, fgColor);
+    // Modern outline icons (standard XBM: bit 1 = foreground, bit 0 = background)
+    D->drawXBitmap(x, y, axion_icons[iconId], ICON_W, ICON_H, fgColor, bgColor);
 }
 
 void DisplayUI::drawGraffitiCrown(int x, int y, uint16_t color) {
@@ -328,56 +376,61 @@ void DisplayUI::drawDashboardHome(const MenuItem* items, uint8_t count, int sele
     drawGraffitiBarcode(SCREEN_WIDTH - 44, 8, theme.border);
     D->fillCircle(SCREEN_WIDTH - 14, 11, 3, theme.accent);
 
-    // 2. Hardware Telemetry Hero Widget (2x2 Glassmorphic HUD)
-    int hudY = 25;
-    int hudW = SCREEN_WIDTH - 12;
-    int hudH = 46;
-    D->fillRoundRect(6, hudY, hudW, hudH, 5, theme.surface);
-    D->drawRoundRect(6, hudY, hudW, hudH, 5, theme.cardBorder);
+    // 2. Redesigned Compact Hardware Telemetry Strip (Sleek 20px Single-Row HUD)
+    // Replaces chunky 46px 2x2 box, removes TEMP entirely, and uses crisp minimal icons.
+    int hudY = 24;
+    int hudW = SCREEN_WIDTH - 12; // 228px
+    int hudH = 20; // Saves 26px of vertical height!
+    D->fillRoundRect(6, hudY, hudW, hudH, 4, theme.surface);
+    D->drawRoundRect(6, hudY, hudW, hudH, 4, theme.cardBorder);
 
-    // Telemetry cell 1: BATTERY
-    D->setTextColor(theme.subtext, theme.surface);
-    D->setTextSize(1);
-    D->setCursor(12, hudY + 5);
-    D->print("PWR:");
-    uint16_t bCol = batPct > 35 ? THEME_GREEN : (batPct > 15 ? THEME_AMBER : THEME_CRIMSON);
-    D->setTextColor(bCol, theme.surface);
-    D->printf("%.2fV %d%%", batVolt, batPct);
-
-    // Telemetry cell 2: TEMPERATURE
-    D->setTextColor(theme.subtext, theme.surface);
-    D->setCursor(128, hudY + 5);
-    D->print("TEMP:");
-    D->setTextColor(tempC > 65.0f ? THEME_CRIMSON : theme.primary, theme.surface);
-    D->printf("%.1f C", tempC);
-
-    // Divider line inside HUD
-    D->drawFastHLine(10, hudY + 22, hudW - 8, theme.cardBorder);
-
-    // Telemetry cell 3: PSRAM
-    D->setTextColor(theme.subtext, theme.surface);
-    D->setCursor(12, hudY + 28);
-    D->print("PSRAM:");
-    D->setTextColor(theme.text, theme.surface);
-    D->printf("%uK FREE", (unsigned)freePsramKB);
-
-    // Telemetry cell 4: SDMMC & ENGINE FPS
-    D->setTextColor(theme.subtext, theme.surface);
-    D->setCursor(128, hudY + 28);
-    D->print("SD:");
+    // Indicator 1: MicroSD Card Icon + Status (Left)
+    D->drawRect(11, hudY + 4, 8, 11, sdOk ? theme.primary : theme.subtext);
+    D->fillRect(13, hudY + 2, 4, 3, sdOk ? theme.primary : theme.subtext);
+    D->fillCircle(24, hudY + 9, 2, sdOk ? THEME_GREEN : THEME_CRIMSON);
     D->setTextColor(sdOk ? THEME_GREEN : THEME_CRIMSON, theme.surface);
-    D->printf("%s (%.0fF)", sdOk ? "READY" : "NO", fps);
+    D->setTextSize(1);
+    D->setCursor(29, hudY + 6);
+    D->print(sdOk ? "SD:OK" : "NO SD");
 
-    // 3. Tool Cards (scrollable vertical layout under hero HUD)
-    int startY = hudY + hudH + 3;
-    int cardH = 30;
+    // Indicator 2: PSRAM Memory IC (Middle-Left)
+    D->drawRect(74, hudY + 5, 9, 9, theme.primary);
+    D->fillRect(76, hudY + 7, 5, 5, theme.cardBorder);
+    D->drawPixel(73, hudY + 7, theme.accent);
+    D->drawPixel(73, hudY + 9, theme.accent);
+    D->drawPixel(84, hudY + 7, theme.accent);
+    D->drawPixel(84, hudY + 9, theme.accent);
+    D->setTextColor(theme.text, theme.surface);
+    D->setCursor(88, hudY + 6);
+    D->printf("%uM", (unsigned)((freePsramKB + 512) / 1024));
+
+    // Indicator 3: Engine FPS / Core Rate (Middle-Right)
+    D->setTextColor(theme.subtext, theme.surface);
+    D->setCursor(120, hudY + 6);
+    D->printf("%.0fFPS", fps);
+
+    // Indicator 4: Battery Icon + Voltage & Percentage (Right)
+    uint16_t bCol = batPct > 35 ? THEME_GREEN : (batPct > 15 ? THEME_AMBER : THEME_CRIMSON);
+    D->drawRect(174, hudY + 5, 15, 9, theme.border);
+    D->drawFastVLine(189, hudY + 7, 5, theme.border);
+    int fillW = map(constrain(batPct, 0, 100), 0, 100, 0, 11);
+    if (fillW > 0) {
+        D->fillRect(176, hudY + 7, fillW, 5, bCol);
+    }
+    D->setTextColor(bCol, theme.surface);
+    D->setCursor(194, hudY + 6);
+    D->printf("%d%%", batPct);
+
+    // 3. Tool Cards (scrollable vertical layout under compact status bar)
+    int startY = hudY + hudH + 3; // 47px!
+    int cardH = 34; // Roomier, more tactile card height
     int spacing = 2;
-    int visibleCount = 6;
+    int visibleCount = 7; // Up from 6!
 
     // Center scroll around selection
     int scroll = 0;
-    if (selectedIndex >= 3) {
-        scroll = selectedIndex - 2;
+    if (selectedIndex >= 4) {
+        scroll = selectedIndex - 3;
     }
     if (scroll > count - visibleCount) scroll = count - visibleCount;
     if (scroll < 0) scroll = 0;
@@ -404,18 +457,18 @@ void DisplayUI::drawDashboardHome(const MenuItem* items, uint8_t count, int sele
         }
 
         uint16_t iconWellBg = isSel ? theme.surface : theme.panel;
-        D->fillRoundRect(12, y + 4, 22, 22, 4, iconWellBg);
-        if (isSel) D->drawRoundRect(12, y + 4, 22, 22, 4, items[i].accentColor);
+        D->fillRoundRect(12, y + 6, 22, 22, 4, iconWellBg);
+        if (isSel) D->drawRoundRect(12, y + 6, 22, 22, 4, items[i].accentColor);
 
         uint16_t iconFg = isSel ? items[i].accentColor : theme.subtext;
-        drawIcon(12, y + 4, items[i].iconId, iconFg, iconWellBg);
+        drawIcon(12, y + 6, items[i].iconId, iconFg, iconWellBg);
 
         D->setTextColor(isSel ? theme.text : THEME_WHITE, cardBg);
-        D->setCursor(42, y + 4);
+        D->setCursor(42, y + 6);
         D->print(items[i].label);
 
         D->setTextColor(isSel ? items[i].accentColor : theme.subtext, cardBg);
-        D->setCursor(42, y + 17);
+        D->setCursor(42, y + 20);
         D->print(items[i].subtext);
     }
 }
@@ -501,17 +554,18 @@ void DisplayUI::drawGridHome(const MenuItem* items, uint8_t count, int selectedI
 
 
 void DisplayUI::drawTopBar(const char* title, uint16_t accentColor, uint8_t batteryPercent) {
-    // Sleek Modern Top Navigation HUD
-    D->fillRect(0, 0, SCREEN_WIDTH, 22, THEME_PANEL);
-    D->drawFastHLine(0, 22, SCREEN_WIDTH, accentColor);
+    UITheme theme = getTheme();
+    uint16_t acc = (accentColor == THEME_CYAN || accentColor == 0) ? theme.primary : accentColor;
+    D->fillRect(0, 0, SCREEN_WIDTH, 22, theme.panel);
+    D->drawFastHLine(0, 22, SCREEN_WIDTH, acc);
 
     // Hazard street slash tag mark
-    D->drawLine(3, 17, 7, 5, THEME_AMBER);
-    D->drawLine(6, 17, 10, 5, accentColor);
-    D->drawPixel(12, 17, accentColor);
+    D->drawLine(3, 17, 7, 5, theme.accent);
+    D->drawLine(6, 17, 10, 5, acc);
+    D->drawPixel(12, 17, acc);
 
     // Modern Header Title
-    D->setTextColor(THEME_STAR_WHITE, THEME_PANEL);
+    D->setTextColor(theme.text, theme.panel);
     D->setTextSize(1);
     D->setCursor(16, 7);
     D->print(title);
@@ -519,8 +573,8 @@ void DisplayUI::drawTopBar(const char* title, uint16_t accentColor, uint8_t batt
     // Modern Pill Battery Gauge
     int batX = SCREEN_WIDTH - 44;
     int batY = 5;
-    D->drawRoundRect(batX, batY, 22, 11, 3, accentColor);
-    D->fillRect(batX + 22, batY + 3, 2, 5, accentColor); // terminal nub
+    D->drawRoundRect(batX, batY, 22, 11, 3, acc);
+    D->fillRect(batX + 22, batY + 3, 2, 5, acc); // terminal nub
 
     int fillW = (batteryPercent * 18) / 100;
     if (fillW > 18) fillW = 18;
@@ -530,20 +584,21 @@ void DisplayUI::drawTopBar(const char* title, uint16_t accentColor, uint8_t batt
     }
 
     // Battery Percentage Digits
-    D->setTextColor(THEME_GREY, THEME_PANEL);
+    D->setTextColor(theme.subtext, theme.panel);
     D->setCursor(batX - 26, 7);
     D->printf("%d%%", batteryPercent);
 }
 
 void DisplayUI::drawBottomBar(const char* hint) {
+    UITheme theme = getTheme();
     // Modern Capsule / Slate Bottom Bar
-    D->fillRect(0, SCREEN_HEIGHT - 18, SCREEN_WIDTH, 18, THEME_PANEL);
-    D->drawFastHLine(0, SCREEN_HEIGHT - 18, SCREEN_WIDTH, THEME_CARD_BORDER);
+    D->fillRect(0, SCREEN_HEIGHT - 18, SCREEN_WIDTH, 18, theme.panel);
+    D->drawFastHLine(0, SCREEN_HEIGHT - 18, SCREEN_WIDTH, theme.cardBorder);
 
     // Left micro status accent bar
-    D->fillRect(4, SCREEN_HEIGHT - 13, 2, 8, THEME_CYAN);
+    D->fillRect(4, SCREEN_HEIGHT - 13, 2, 8, theme.primary);
 
-    D->setTextColor(THEME_GREY, THEME_PANEL);
+    D->setTextColor(theme.subtext, theme.panel);
     D->setTextSize(1);
     D->setCursor(10, SCREEN_HEIGHT - 13);
     D->print(hint);

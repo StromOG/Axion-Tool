@@ -20,6 +20,13 @@ uint16_t SettingsManager::foxHuntSensitivity = 65;
 uint8_t SettingsManager::themePreset = 0; // THEME_CYBERPUNK
 uint8_t SettingsManager::menuLayout = 0;  // LAYOUT_DASHBOARD
 uint8_t SettingsManager::profileMode = 0; // PROFILE_STANDARD
+uint16_t SettingsManager::cpuSpeedMHz = 240;
+uint8_t SettingsManager::frameRateLimit = 60;
+uint8_t SettingsManager::nrfPower = 0; // 0 = 0dBm Max PA
+uint8_t SettingsManager::nrfDataRate = 0; // 0 = 250kbps Long Range
+uint8_t SettingsManager::subGhzFilter = 0; // 0 = High Sensitivity ASK
+bool SettingsManager::irBoost = false;
+uint8_t SettingsManager::buzzerMode = 0; // 0 = Subtle Chirp
 CameraSettings SettingsManager::cam = {};
 
 static const char* PRESET_PREFIXES[] = { "image", "photo", "shot", "capture", "doc", "axion" };
@@ -422,3 +429,31 @@ uint8_t SettingsManager::getImageFormat() { return 0; } // JPG locked
 const char* SettingsManager::getImageFormatExtension() { return "JPG"; }
 
 CameraSettings& SettingsManager::camera() { return cam; }
+
+uint16_t SettingsManager::getCpuSpeedMHz() { return cpuSpeedMHz; }
+void SettingsManager::setCpuSpeedMHz(uint16_t mhz) {
+    if (mhz == 240 || mhz == 160 || mhz == 80) {
+        cpuSpeedMHz = mhz;
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+        setCpuFrequencyMhz(mhz);
+#endif
+    }
+}
+
+uint8_t SettingsManager::getFrameRateLimit() { return frameRateLimit; }
+void SettingsManager::setFrameRateLimit(uint8_t fps) { frameRateLimit = fps; }
+
+uint8_t SettingsManager::getNrfPower() { return nrfPower; }
+void SettingsManager::setNrfPower(uint8_t pwr) { nrfPower = pwr % 4; }
+
+uint8_t SettingsManager::getNrfDataRate() { return nrfDataRate; }
+void SettingsManager::setNrfDataRate(uint8_t rate) { nrfDataRate = rate % 3; }
+
+uint8_t SettingsManager::getSubGhzFilter() { return subGhzFilter; }
+void SettingsManager::setSubGhzFilter(uint8_t f) { subGhzFilter = f % 2; }
+
+bool SettingsManager::getIrBoost() { return irBoost; }
+void SettingsManager::setIrBoost(bool b) { irBoost = b; }
+
+uint8_t SettingsManager::getBuzzerMode() { return buzzerMode; }
+void SettingsManager::setBuzzerMode(uint8_t m) { buzzerMode = m % 3; }

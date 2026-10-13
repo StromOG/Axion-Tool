@@ -23,9 +23,13 @@ struct CameraSettings {
 
 enum ThemePreset {
     THEME_CYBERPUNK = 0,
-    THEME_STEALTH = 1,
-    THEME_FIELD_AMBER = 2,
-    THEME_PRESET_COUNT = 3
+    THEME_AMOLED = 1,
+    THEME_STEALTH = 2,
+    THEME_FIELD_AMBER = 3,
+    THEME_EMERALD = 4,
+    THEME_SYNTHWAVE = 5,
+    THEME_SOLARIZED = 6,
+    THEME_PRESET_COUNT = 7
 };
 
 enum MenuLayout {
@@ -104,6 +108,28 @@ public:
     static uint8_t getImageFormat();            // 0 = JPG (fixed/locked)
     static const char* getImageFormatExtension();
 
+    // Master Hardware Subsystem Controls (1-to-1 with physical BOM)
+    static uint16_t getCpuSpeedMHz();
+    static void setCpuSpeedMHz(uint16_t mhz);
+
+    static uint8_t getFrameRateLimit();
+    static void setFrameRateLimit(uint8_t fps);
+
+    static uint8_t getNrfPower();
+    static void setNrfPower(uint8_t pwr);
+
+    static uint8_t getNrfDataRate();
+    static void setNrfDataRate(uint8_t rate);
+
+    static uint8_t getSubGhzFilter();
+    static void setSubGhzFilter(uint8_t f);
+
+    static bool getIrBoost();
+    static void setIrBoost(bool b);
+
+    static uint8_t getBuzzerMode();
+    static void setBuzzerMode(uint8_t m);
+
     // Camera / ISP block (authoritative persisted copy)
     static CameraSettings& camera();           // mutable reference
 
@@ -124,5 +150,12 @@ private:
     static uint8_t themePreset;
     static uint8_t menuLayout;
     static uint8_t profileMode;
+    static uint16_t cpuSpeedMHz;
+    static uint8_t frameRateLimit;
+    static uint8_t nrfPower;
+    static uint8_t nrfDataRate;
+    static uint8_t subGhzFilter;
+    static bool irBoost;
+    static uint8_t buzzerMode;
     static CameraSettings cam;
 };
