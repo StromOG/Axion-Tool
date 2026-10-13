@@ -134,15 +134,52 @@ void DisplayUI::drawIcon(int x, int y, uint8_t iconId, uint16_t fgColor, uint16_
     D->drawXBitmap(x, y, axion_icons[iconId], ICON_W, ICON_H, bgColor, fgColor);
 }
 
+void DisplayUI::drawCyberGraffitiHUD(int x, int y, const char* tag, uint16_t primaryCol, uint16_t accentCol) {
+    if (!tag) tag = "AXION";
+
+    // Dynamic Cyberpunk Hazard Slash Bar & Tag Overlays
+    // 1. Tag Accent Backsplash / Stencil Slash
+    D->drawLine(x - 6, y + 14, x + 2, y - 2, accentCol);
+    D->drawLine(x - 5, y + 14, x + 3, y - 2, accentCol);
+    D->drawLine(x - 1, y + 15, x + 7, y - 3, primaryCol);
+
+    // 2. Neon Underglow Shadow
+    D->setTextSize(1);
+    D->setTextColor(THEME_PANEL, THEME_BG);
+    D->setCursor(x + 11, y + 5);
+    D->print(tag);
+
+    // 3. Stencil Street Tag Text with chromatic offset
+    D->setTextColor(accentCol, THEME_PANEL);
+    D->setCursor(x + 9, y + 3);
+    D->print(tag);
+
+    D->setTextColor(primaryCol, THEME_PANEL);
+    D->setCursor(x + 10, y + 4);
+    D->print(tag);
+
+    // 4. Cyber Drips / Sparks
+    int tagLen = strlen(tag) * 6;
+    int endX = x + 12 + tagLen;
+    D->drawFastHLine(endX + 2, y + 6, 10, primaryCol);
+    D->drawFastHLine(endX + 4, y + 9, 6, accentCol);
+    D->drawPixel(endX + 14, y + 7, primaryCol);
+    D->drawPixel(endX + 16, y + 10, accentCol);
+    D->drawPixel(x + 16, y + 15, primaryCol); // subtle spray splatter
+    D->drawPixel(x + 24, y + 16, accentCol);
+}
+
 void DisplayUI::drawAnimatedMenu(const MenuItem* items, uint8_t count, int selectedIndex, float animOffset) {
-    // Header
+    // Header with Cyber Graffiti Tag
     D->fillRect(0, 0, SCREEN_WIDTH, 22, THEME_PANEL);
     D->drawFastHLine(0, 22, SCREEN_WIDTH, THEME_CYAN);
-    D->setTextColor(THEME_CYAN, THEME_PANEL);
-    D->setTextSize(1);
-    D->setCursor(8, 7);
-    D->print("AXION // MULTI-TOOL & CAM");
+
+    // Render Cyber Street Graffiti Tag at top left
+    drawCyberGraffitiHUD(4, 2, "AXION // STROM", THEME_CYAN, THEME_AMBER);
+
+    // Top status indicator
     D->fillCircle(SCREEN_WIDTH - 14, 11, 3, THEME_GREEN);
+    D->drawCircle(SCREEN_WIDTH - 14, 11, 5, THEME_DIM_CYAN);
 
     int startY = 23;
     int cardH = 33;
@@ -184,9 +221,15 @@ void DisplayUI::drawAnimatedMenu(const MenuItem* items, uint8_t count, int selec
 void DisplayUI::drawTopBar(const char* title, uint16_t accentColor, uint8_t batteryPercent) {
     D->fillRect(0, 0, SCREEN_WIDTH, 20, THEME_PANEL);
     D->drawFastHLine(0, 20, SCREEN_WIDTH, accentColor);
+
+    // Hazard spray slashes before title
+    D->drawLine(2, 17, 7, 3, THEME_AMBER);
+    D->drawLine(6, 17, 11, 3, accentColor);
+    D->drawPixel(14, 18, accentColor);
+
     D->setTextColor(accentColor, THEME_PANEL);
     D->setTextSize(1);
-    D->setCursor(6, 6);
+    D->setCursor(16, 6);
     D->print(title);
 
     int batX = SCREEN_WIDTH - 48;

@@ -61,6 +61,9 @@ public:
     // Shared Axion Cyber Star Logo renderer (geometric star with faceted shading & orbital chevrons)
     static void drawAxionStarLogo(int cx, int cy, float size, float glowAlpha = 1.0f, bool drawChevrons = true);
 
+    // Tactical Cyber Graffiti & Tag Accent Renderer (drawn on top of header/HUD)
+    static void drawCyberGraffitiHUD(int x, int y, const char* tag = "AXION", uint16_t primaryCol = THEME_CYAN, uint16_t accentCol = THEME_AMBER);
+
     // Premium animated boot sequence (blocking, sprite-buffered ~2.2s)
     static void drawCyberpunkBootSplash();
 

@@ -254,10 +254,56 @@ function playBuzzer(freq, durationMs) {
 }
 
 // ---------- helpers ----------
-function topBar(title,accent){ctx.fillStyle=C.panel;ctx.fillRect(0,0,240,20);ctx.fillStyle=accent;ctx.fillRect(0,20,240,1);
-  F(10);ctx.fillStyle=accent;ctx.fillText(title,6,14);
-  const bx=192;ctx.strokeStyle=accent;ctx.strokeRect(bx,5,20,10);ctx.fillStyle=accent;ctx.fillRect(bx+20,7,2,6);ctx.fillStyle=C.green;ctx.fillRect(bx+2,7,14,6);
-  ctx.fillStyle=accent;ctx.fillText('96%',bx-26,14);}
+function drawCyberGraffitiHUD(x, y, tag, primaryCol, accentCol){
+  tag = tag || 'AXION';
+  primaryCol = primaryCol || C.cyan;
+  accentCol = accentCol || C.amber;
+
+  // Stencil Slash Hazard
+  ctx.strokeStyle = accentCol; ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(x - 5, y + 14); ctx.lineTo(x + 2, y - 2);
+  ctx.moveTo(x - 3, y + 14); ctx.lineTo(x + 4, y - 2);
+  ctx.stroke();
+
+  ctx.strokeStyle = primaryCol;
+  ctx.beginPath();
+  ctx.moveTo(x - 1, y + 15); ctx.lineTo(x + 6, y - 3);
+  ctx.stroke();
+
+  // Shadow underglow
+  F(10);
+  ctx.fillStyle = C.panel;
+  ctx.fillText(tag, x + 11, y + 12);
+
+  // Stencil Chromatic shift
+  ctx.fillStyle = accentCol;
+  ctx.fillText(tag, x + 9, y + 10);
+  ctx.fillStyle = primaryCol;
+  ctx.fillText(tag, x + 10, y + 11);
+
+  // Sparks / Drips
+  const tagLen = ctx.measureText(tag).width;
+  const endX = x + 12 + tagLen;
+  ctx.fillStyle = primaryCol;
+  ctx.fillRect(endX + 2, y + 6, 8, 1);
+  ctx.fillStyle = accentCol;
+  ctx.fillRect(endX + 4, y + 9, 5, 1);
+  ctx.fillRect(endX + 12, y + 7, 2, 2);
+  ctx.fillRect(x + 16, y + 15, 1.5, 1.5);
+}
+
+function topBar(title,accent){
+  ctx.fillStyle=C.panel;ctx.fillRect(0,0,240,20);ctx.fillStyle=accent;ctx.fillRect(0,20,240,1);
+  // Graffiti hazard spray slashes before title
+  ctx.strokeStyle=C.amber;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(2,17);ctx.lineTo(7,3);ctx.stroke();
+  ctx.strokeStyle=accent;ctx.beginPath();ctx.moveTo(6,17);ctx.lineTo(11,3);ctx.stroke();
+  ctx.fillStyle=accent;ctx.fillRect(13,16,2,2);
+
+  F(10);ctx.fillStyle=accent;ctx.fillText(title,16,14);
+  const bx=192;ctx.strokeStyle=accent;ctx.lineWidth=1;ctx.strokeRect(bx,5,20,10);ctx.fillStyle=accent;ctx.fillRect(bx+20,7,2,6);ctx.fillStyle=C.green;ctx.fillRect(bx+2,7,14,6);
+  ctx.fillStyle=accent;ctx.fillText('96%',bx-26,14);
+}
 function bottomBar(hint){ctx.fillStyle=C.panel;ctx.fillRect(0,304,240,16);ctx.fillStyle=C.dim;ctx.fillRect(0,303,240,1);
   F(9);ctx.fillStyle=C.grey;ctx.fillText(hint,6,315);}
 function centerText(t,y,col,px){F(px||10);ctx.fillStyle=col;const w=ctx.measureText(t).width;ctx.fillText(t,(240-w)/2,y);}
@@ -536,8 +582,12 @@ function renderMenu(){
   if(menuSel<menuScroll)menuScroll=menuSel;
   if(menuSel>=menuScroll+MENU_VISIBLE)menuScroll=menuSel-MENU_VISIBLE+1;
   ctx.fillStyle=C.panel;ctx.fillRect(0,0,240,22);ctx.fillStyle=C.cyan;ctx.fillRect(0,22,240,1);
-  F(10);ctx.fillStyle=C.cyan;ctx.fillText('AXION // MULTI-TOOL & CAM',8,14);
+
+  // Top Cyber Graffiti Tag
+  drawCyberGraffitiHUD(4, 3, 'AXION // STROM', C.cyan, C.amber);
+
   ctx.fillStyle=C.green;ctx.beginPath();ctx.arc(226,11,3,0,7);ctx.fill();
+  ctx.strokeStyle=C.dim;ctx.beginPath();ctx.arc(226,11,5,0,7);ctx.stroke();
   const startY=23,cardH=33,sp=2;
   for(let r=0;r<MENU_VISIBLE;r++){
     const i=menuScroll+r; if(i>=MENU.length)break;
