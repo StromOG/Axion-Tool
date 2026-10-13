@@ -254,6 +254,31 @@ function playBuzzer(freq, durationMs) {
 }
 
 // ---------- helpers ----------
+function drawGraffitiCrown(x, y, col) {
+  col = col || C.amber;
+  ctx.strokeStyle = col; ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(x, y + 6); ctx.lineTo(x - 4, y);
+  ctx.lineTo(x - 1, y + 4);
+  ctx.lineTo(x + 2, y - 2);
+  ctx.lineTo(x + 5, y + 4);
+  ctx.lineTo(x + 8, y);
+  ctx.lineTo(x + 4, y + 6);
+  ctx.moveTo(x - 4, y + 7); ctx.lineTo(x + 9, y + 7);
+  ctx.stroke();
+}
+
+function drawGraffitiBarcode(x, y, col) {
+  col = col || C.dim;
+  ctx.fillStyle = col;
+  const bars = [1, 2, 1, 1, 2, 1, 3, 1, 2, 1];
+  let cx = x;
+  for (let b of bars) {
+    ctx.fillRect(cx, y, b, 6);
+    cx += b + 1;
+  }
+}
+
 function drawCyberGraffitiHUD(x, y, tag, primaryCol, accentCol){
   tag = tag || 'AXION';
   primaryCol = primaryCol || C.cyan;
@@ -583,8 +608,12 @@ function renderMenu(){
   if(menuSel>=menuScroll+MENU_VISIBLE)menuScroll=menuSel-MENU_VISIBLE+1;
   ctx.fillStyle=C.panel;ctx.fillRect(0,0,240,22);ctx.fillStyle=C.cyan;ctx.fillRect(0,22,240,1);
 
-  // Top Cyber Graffiti Tag
-  drawCyberGraffitiHUD(4, 3, 'AXION // STROM', C.cyan, C.amber);
+  // Top Cyber Graffiti Tag with floating Crown
+  drawGraffitiCrown(14, 2, C.amber);
+  drawCyberGraffitiHUD(4, 5, 'AXION // STROM', C.cyan, C.amber);
+
+  // Micro barcode tag stamp
+  drawGraffitiBarcode(184, 8, C.dim);
 
   ctx.fillStyle=C.green;ctx.beginPath();ctx.arc(226,11,3,0,7);ctx.fill();
   ctx.strokeStyle=C.dim;ctx.beginPath();ctx.arc(226,11,5,0,7);ctx.stroke();

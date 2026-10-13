@@ -134,6 +134,31 @@ void DisplayUI::drawIcon(int x, int y, uint8_t iconId, uint16_t fgColor, uint16_
     D->drawXBitmap(x, y, axion_icons[iconId], ICON_W, ICON_H, bgColor, fgColor);
 }
 
+void DisplayUI::drawGraffitiCrown(int x, int y, uint16_t color) {
+    // 3-point underground graffiti crown (Basquiat-inspired cyber street tag)
+    // Left peak
+    D->drawLine(x, y + 6, x - 4, y, color);
+    D->drawLine(x - 4, y, x - 1, y + 4, color);
+    // Middle peak (taller)
+    D->drawLine(x - 1, y + 4, x + 2, y - 2, color);
+    D->drawLine(x + 2, y - 2, x + 5, y + 4, color);
+    // Right peak
+    D->drawLine(x + 5, y + 4, x + 8, y, color);
+    D->drawLine(x + 8, y, x + 4, y + 6, color);
+    // Crown base bar
+    D->drawFastHLine(x - 4, y + 7, 13, color);
+}
+
+void DisplayUI::drawGraffitiBarcode(int x, int y, uint16_t color) {
+    // Cyberpunk micro barcode tag
+    const uint8_t bars[] = { 1, 2, 1, 1, 2, 1, 3, 1, 2, 1 };
+    int curX = x;
+    for (size_t b = 0; b < sizeof(bars); b++) {
+        D->fillRect(curX, y, bars[b], 6, color);
+        curX += bars[b] + 1;
+    }
+}
+
 void DisplayUI::drawCyberGraffitiHUD(int x, int y, const char* tag, uint16_t primaryCol, uint16_t accentCol) {
     if (!tag) tag = "AXION";
 
@@ -170,12 +195,18 @@ void DisplayUI::drawCyberGraffitiHUD(int x, int y, const char* tag, uint16_t pri
 }
 
 void DisplayUI::drawAnimatedMenu(const MenuItem* items, uint8_t count, int selectedIndex, float animOffset) {
-    // Header with Cyber Graffiti Tag
+    // Header with Cyber Graffiti Tag & Crown
     D->fillRect(0, 0, SCREEN_WIDTH, 22, THEME_PANEL);
     D->drawFastHLine(0, 22, SCREEN_WIDTH, THEME_CYAN);
 
+    // Graffiti Crown floating above tag
+    drawGraffitiCrown(14, 2, THEME_AMBER);
+
     // Render Cyber Street Graffiti Tag at top left
-    drawCyberGraffitiHUD(4, 2, "AXION // STROM", THEME_CYAN, THEME_AMBER);
+    drawCyberGraffitiHUD(4, 5, "AXION // STROM", THEME_CYAN, THEME_AMBER);
+
+    // Micro barcode stamp next to status LED
+    drawGraffitiBarcode(SCREEN_WIDTH - 42, 8, THEME_DIM_CYAN);
 
     // Top status indicator
     D->fillCircle(SCREEN_WIDTH - 14, 11, 3, THEME_GREEN);

@@ -63,6 +63,8 @@ public:
 
     // Tactical Cyber Graffiti & Tag Accent Renderer (drawn on top of header/HUD)
     static void drawCyberGraffitiHUD(int x, int y, const char* tag = "AXION", uint16_t primaryCol = THEME_CYAN, uint16_t accentCol = THEME_AMBER);
+    static void drawGraffitiCrown(int x, int y, uint16_t color = THEME_AMBER);
+    static void drawGraffitiBarcode(int x, int y, uint16_t color = THEME_DIM_CYAN);
 
     // Premium animated boot sequence (blocking, sprite-buffered ~2.2s)
     static void drawCyberpunkBootSplash();
