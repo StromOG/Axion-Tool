@@ -181,14 +181,16 @@ static void drawMainMenu() {
     DisplayUI::beginFrame();
     DisplayUI::drawAnimatedMenu(&mainMenuItems[menuScroll], visible, menuSelection - menuScroll, 0.0f);
 
-    // Scrollbar
+    // Modern Pill Scrollbar Track & Thumb
     if (MENU_COUNT > MENU_VISIBLE) {
         auto* c = DisplayUI::canvas();
-        int trackY = 23, trackH = 278;
-        c->drawFastVLine(SCREEN_WIDTH - 3, trackY, trackH, THEME_DIM_CYAN);
+        int trackX = SCREEN_WIDTH - 4;
+        int trackY = 26, trackH = 274;
+        c->fillRoundRect(trackX - 1, trackY, 3, trackH, 1, THEME_PANEL);
+        c->drawFastVLine(trackX, trackY, trackH, THEME_DIM_CYAN);
         int thumbH = trackH * MENU_VISIBLE / MENU_COUNT;
         int thumbY = trackY + (trackH - thumbH) * menuScroll / (MENU_COUNT - MENU_VISIBLE);
-        c->fillRect(SCREEN_WIDTH - 4, thumbY, 3, thumbH, THEME_CYAN);
+        c->fillRoundRect(trackX - 1, thumbY, 3, thumbH, 1, THEME_CYAN);
     }
 
 

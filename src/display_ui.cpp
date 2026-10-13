@@ -208,78 +208,115 @@ void DisplayUI::drawAnimatedMenu(const MenuItem* items, uint8_t count, int selec
     // Micro barcode stamp next to status LED
     drawGraffitiBarcode(SCREEN_WIDTH - 42, 8, THEME_DIM_CYAN);
 
-    // Top status indicator
+    // Top status indicator: Glowing Cyber Pulsing Beacon
     D->fillCircle(SCREEN_WIDTH - 14, 11, 3, THEME_GREEN);
     D->drawCircle(SCREEN_WIDTH - 14, 11, 5, THEME_DIM_CYAN);
 
-    int startY = 23;
-    int cardH = 33;
+    int startY = 24;
+    int cardH = 32;
     int spacing = 2;
 
     for (int i = 0; i < count; i++) {
         int y = startY + i * (cardH + spacing);
         bool isSelected = (i == selectedIndex);
-        uint16_t cardBg = isSelected ? THEME_SURFACE : THEME_PANEL;
-        uint16_t borderCol = isSelected ? items[i].accentColor : THEME_DIM_CYAN;
 
-        D->fillRoundRect(6, y, SCREEN_WIDTH - 12, cardH, 4, cardBg);
-        D->drawRoundRect(6, y, SCREEN_WIDTH - 12, cardH, 4, borderCol);
+        // Modern Card Surfaces: Rich obsidian slate when unselected, deep radiant contrast when selected
+        uint16_t cardBg = isSelected ? THEME_CARD_SEL : THEME_SURFACE;
+        uint16_t borderCol = isSelected ? items[i].accentColor : THEME_CARD_BORDER;
+
+        // Card body with smooth rounded corners
+        D->fillRoundRect(6, y, SCREEN_WIDTH - 12, cardH, 5, cardBg);
+        D->drawRoundRect(6, y, SCREEN_WIDTH - 12, cardH, 5, borderCol);
 
         if (isSelected) {
-            D->fillRoundRect(6, y + 2, 4, cardH - 4, 2, items[i].accentColor);
-            D->drawRoundRect(4, y - 1, SCREEN_WIDTH - 8, cardH + 2, 5, items[i].accentColor);
-            D->fillRoundRect(SCREEN_WIDTH - 22, y + 8, 14, 16, 3, items[i].accentColor);
+            // Neon accent left indicator pill
+            D->fillRoundRect(7, y + 3, 3, cardH - 6, 2, items[i].accentColor);
+            // Crisp selection outer rim highlight
+            D->drawRoundRect(5, y - 1, SCREEN_WIDTH - 10, cardH + 2, 6, items[i].accentColor);
+
+            // Sleek Modern Arrow Pill Badge on the right
+            D->fillRoundRect(SCREEN_WIDTH - 24, y + 8, 14, 16, 4, items[i].accentColor);
             D->setTextColor(THEME_BG, items[i].accentColor);
-            D->setCursor(SCREEN_WIDTH - 17, y + 12);
+            D->setTextSize(1);
+            D->setCursor(SCREEN_WIDTH - 19, y + 12);
             D->print(">");
+        } else {
+            // Unselected subtle right chevron dot
+            D->drawPixel(SCREEN_WIDTH - 16, y + 15, THEME_MUTED_GREY);
+            D->drawPixel(SCREEN_WIDTH - 15, y + 16, THEME_MUTED_GREY);
+            D->drawPixel(SCREEN_WIDTH - 16, y + 17, THEME_MUTED_GREY);
+        }
+
+        // Modern Icon Well / Recessed Badge
+        uint16_t iconWellBg = isSelected ? THEME_SURFACE : THEME_PANEL;
+        D->fillRoundRect(12, y + 5, 22, 22, 4, iconWellBg);
+        if (isSelected) {
+            D->drawRoundRect(12, y + 5, 22, 22, 4, items[i].accentColor);
         }
 
         uint16_t iconFg = isSelected ? items[i].accentColor : THEME_GREY;
-        drawIcon(12, y + (cardH - ICON_H) / 2, items[i].iconId, iconFg, cardBg);
+        drawIcon(12, y + 5, items[i].iconId, iconFg, iconWellBg);
 
+        // Primary title: Crisp White on active, High-clarity Cyan/White on idle
         D->setTextSize(1);
-        D->setTextColor(isSelected ? THEME_WHITE : THEME_CYAN, cardBg);
-        D->setCursor(40, y + 4);
+        D->setTextColor(isSelected ? THEME_STAR_WHITE : THEME_WHITE, cardBg);
+        D->setCursor(42, y + 5);
         D->print(items[i].label);
 
+        // Subtext: Accent glow on active, Sleek legible slate-grey on idle
         D->setTextColor(isSelected ? items[i].accentColor : THEME_GREY, cardBg);
-        D->setCursor(40, y + 18);
+        D->setCursor(42, y + 18);
         D->print(items[i].subtext);
     }
 }
 
 
 void DisplayUI::drawTopBar(const char* title, uint16_t accentColor, uint8_t batteryPercent) {
-    D->fillRect(0, 0, SCREEN_WIDTH, 20, THEME_PANEL);
-    D->drawFastHLine(0, 20, SCREEN_WIDTH, accentColor);
+    // Sleek Modern Top Navigation HUD
+    D->fillRect(0, 0, SCREEN_WIDTH, 22, THEME_PANEL);
+    D->drawFastHLine(0, 22, SCREEN_WIDTH, accentColor);
 
-    // Hazard spray slashes before title
-    D->drawLine(2, 17, 7, 3, THEME_AMBER);
-    D->drawLine(6, 17, 11, 3, accentColor);
-    D->drawPixel(14, 18, accentColor);
+    // Hazard street slash tag mark
+    D->drawLine(3, 17, 7, 5, THEME_AMBER);
+    D->drawLine(6, 17, 10, 5, accentColor);
+    D->drawPixel(12, 17, accentColor);
 
-    D->setTextColor(accentColor, THEME_PANEL);
+    // Modern Header Title
+    D->setTextColor(THEME_STAR_WHITE, THEME_PANEL);
     D->setTextSize(1);
-    D->setCursor(16, 6);
+    D->setCursor(16, 7);
     D->print(title);
 
-    int batX = SCREEN_WIDTH - 48;
-    D->drawRect(batX, 5, 20, 10, accentColor);
-    D->fillRect(batX + 20, 7, 2, 6, accentColor);
-    int barWidth = (batteryPercent * 16) / 100;
-    uint16_t batCol = batteryPercent > 20 ? THEME_GREEN : THEME_CRIMSON;
-    D->fillRect(batX + 2, 7, barWidth, 6, batCol);
-    D->setTextColor(accentColor, THEME_PANEL);
-    D->setCursor(batX - 28, 6);
+    // Modern Pill Battery Gauge
+    int batX = SCREEN_WIDTH - 44;
+    int batY = 5;
+    D->drawRoundRect(batX, batY, 22, 11, 3, accentColor);
+    D->fillRect(batX + 22, batY + 3, 2, 5, accentColor); // terminal nub
+
+    int fillW = (batteryPercent * 18) / 100;
+    if (fillW > 18) fillW = 18;
+    uint16_t batCol = batteryPercent > 35 ? THEME_GREEN : (batteryPercent > 15 ? THEME_AMBER : THEME_CRIMSON);
+    if (fillW > 0) {
+        D->fillRoundRect(batX + 2, batY + 2, fillW, 7, 2, batCol);
+    }
+
+    // Battery Percentage Digits
+    D->setTextColor(THEME_GREY, THEME_PANEL);
+    D->setCursor(batX - 26, 7);
     D->printf("%d%%", batteryPercent);
 }
 
 void DisplayUI::drawBottomBar(const char* hint) {
-    D->fillRect(0, SCREEN_HEIGHT - 16, SCREEN_WIDTH, 16, THEME_PANEL);
-    D->drawFastHLine(0, SCREEN_HEIGHT - 17, SCREEN_WIDTH, THEME_DIM_CYAN);
+    // Modern Capsule / Slate Bottom Bar
+    D->fillRect(0, SCREEN_HEIGHT - 18, SCREEN_WIDTH, 18, THEME_PANEL);
+    D->drawFastHLine(0, SCREEN_HEIGHT - 18, SCREEN_WIDTH, THEME_CARD_BORDER);
+
+    // Left micro status accent bar
+    D->fillRect(4, SCREEN_HEIGHT - 13, 2, 8, THEME_CYAN);
+
     D->setTextColor(THEME_GREY, THEME_PANEL);
     D->setTextSize(1);
-    D->setCursor(6, SCREEN_HEIGHT - 12);
+    D->setCursor(10, SCREEN_HEIGHT - 13);
     D->print(hint);
 }
 
@@ -875,30 +912,44 @@ void DisplayUI::drawSettingsMenu(int selectedIndex, const char* names[], const c
 
         bool isSel = (i == selectedIndex);
         uint16_t cardBg = isSel ? THEME_BW_CARD_SEL : THEME_BW_SURFACE;
-        D->fillRoundRect(6, y, SCREEN_WIDTH - 16, rowH - 2, 4, cardBg);
-        D->drawRoundRect(6, y, SCREEN_WIDTH - 16, rowH - 2, 4, isSel ? THEME_BW_WHITE : THEME_BW_BORDER);
-        if (isSel) D->fillRoundRect(6, y + 2, 4, rowH - 6, 2, THEME_BW_WHITE);
+        D->fillRoundRect(6, y, SCREEN_WIDTH - 14, rowH - 2, 4, cardBg);
+        D->drawRoundRect(6, y, SCREEN_WIDTH - 14, rowH - 2, 4, isSel ? THEME_BW_WHITE : THEME_BW_BORDER);
+
+        if (isSel) {
+            D->fillRoundRect(6, y + 2, 3, rowH - 6, 2, THEME_BW_WHITE);
+        }
 
         D->setTextSize(1);
         D->setTextColor(isSel ? THEME_BW_WHITE : THEME_BW_SILVER, cardBg);
-        D->setCursor(14, y + 7);
+        D->setCursor(14, y + 6);
         D->print(names[i]);
 
         if (values[i] && values[i][0]) {
-            D->setTextColor(isSel ? THEME_BW_WHITE : THEME_BW_MUTED, cardBg);
             int valW = strlen(values[i]) * 6;
-            D->setCursor(SCREEN_WIDTH - 20 - valW, y + 7);
+            int chipW = valW + 10;
+            int chipX = SCREEN_WIDTH - 16 - chipW;
+
+            // Micro pill badge for setting values
+            uint16_t chipBg = isSel ? THEME_BW_BORDER : THEME_BW_BG;
+            D->fillRoundRect(chipX, y + 3, chipW, 14, 3, chipBg);
+            if (isSel) {
+                D->drawRoundRect(chipX, y + 3, chipW, 14, 3, THEME_BW_WHITE);
+            }
+
+            D->setTextColor(isSel ? THEME_BW_WHITE : THEME_BW_SILVER, chipBg);
+            D->setCursor(chipX + 5, y + 6);
             D->print(values[i]);
         }
     }
 
     // High-contrast clean scrollbar
     if (itemCount > visibleRows) {
-        int trackX = SCREEN_WIDTH - 5, trackY = startY, trackH = visibleRows * rowH;
+        int trackX = SCREEN_WIDTH - 4, trackY = startY, trackH = visibleRows * rowH;
+        D->fillRoundRect(trackX - 1, trackY, 3, trackH, 1, THEME_BW_SURFACE);
         D->drawFastVLine(trackX, trackY, trackH, THEME_BW_BORDER);
         int thumbH = trackH * visibleRows / itemCount;
         int thumbY = trackY + (trackH - thumbH) * scrollOffset / (itemCount - visibleRows);
-        D->fillRect(trackX - 1, thumbY, 3, thumbH, THEME_BW_WHITE);
+        D->fillRoundRect(trackX - 1, thumbY, 3, thumbH, 1, THEME_BW_WHITE);
     }
 
     drawBottomBar("U/D:Nav  L/R:Adjust  CLICK:Action  MENU:Save");
@@ -948,16 +999,22 @@ void DisplayUI::drawFileExplorer(const char* path, const SdEntry* entries, int c
         if (i >= count) break;
         int y = startY + row * rowH;
         bool isSel = (i == selectedIndex);
-        uint16_t bg = isSel ? THEME_SURFACE : THEME_PANEL;
+        uint16_t bg = isSel ? THEME_CARD_SEL : THEME_SURFACE;
+        uint16_t borderCol = isSel ? THEME_GREEN : THEME_CARD_BORDER;
 
-        D->fillRect(6, y, SCREEN_WIDTH - 14, rowH - 2, bg);
-        if (isSel) D->drawRect(6, y, SCREEN_WIDTH - 14, rowH - 2, THEME_GREEN);
+        // Modern Rounded File Card
+        D->fillRoundRect(6, y, SCREEN_WIDTH - 14, rowH - 2, 4, bg);
+        D->drawRoundRect(6, y, SCREEN_WIDTH - 14, rowH - 2, 4, borderCol);
+
+        if (isSel) {
+            D->fillRoundRect(6, y + 2, 3, rowH - 6, 2, THEME_GREEN);
+        }
 
         drawIcon(10, y + 1, fileIconFor(entries[i]),
-                 isSel ? THEME_GREEN : THEME_GREY, bg); // 22px tall fits row
+                 isSel ? THEME_GREEN : (entries[i].isDir ? THEME_CYAN : THEME_GREY), bg);
 
-        D->setTextColor(entries[i].isDir ? THEME_CYAN : (isSel ? THEME_WHITE : THEME_GREY), bg);
-        D->setCursor(36, y + 7);
+        D->setTextColor(entries[i].isDir ? THEME_CYAN : (isSel ? THEME_STAR_WHITE : THEME_WHITE), bg);
+        D->setCursor(36, y + 6);
         char nm[22];
         strncpy(nm, entries[i].name, 21); nm[21] = '\0';
         D->print(nm);
@@ -965,32 +1022,45 @@ void DisplayUI::drawFileExplorer(const char* path, const SdEntry* entries, int c
         if (!entries[i].isDir) {
             char sz[12];
             humanSize(entries[i].size, sz, sizeof(sz));
-            D->setTextColor(THEME_AMBER, bg);
             int sw = strlen(sz) * 6;
-            D->setCursor(SCREEN_WIDTH - 16 - sw, y + 7);
+            int chipW = sw + 8;
+            int chipX = SCREEN_WIDTH - 16 - chipW;
+
+            // Micro size pill
+            D->fillRoundRect(chipX, y + 3, chipW, 12, 2, isSel ? THEME_SURFACE : THEME_PANEL);
+            D->setTextColor(THEME_AMBER, isSel ? THEME_SURFACE : THEME_PANEL);
+            D->setCursor(chipX + 4, y + 5);
             D->print(sz);
         }
     }
 
     if (count > visibleRows) {
-        int trackY = startY, trackH = visibleRows * rowH;
-        D->drawFastVLine(SCREEN_WIDTH - 5, trackY, trackH, THEME_DIM_CYAN);
+        int trackX = SCREEN_WIDTH - 4, trackY = startY, trackH = visibleRows * rowH;
+        D->fillRoundRect(trackX - 1, trackY, 3, trackH, 1, THEME_PANEL);
+        D->drawFastVLine(trackX, trackY, trackH, THEME_DIM_CYAN);
         int thumbH = trackH * visibleRows / count;
         int thumbY = trackY + (trackH - thumbH) * scrollOffset / (count - visibleRows);
-        D->fillRect(SCREEN_WIDTH - 6, thumbY, 3, thumbH, THEME_CYAN);
+        D->fillRoundRect(trackX - 1, thumbY, 3, thumbH, 1, THEME_GREEN);
     }
 
-    // Storage bar
-    int by = SCREEN_HEIGHT - 34;
-    D->setTextColor(THEME_GREY, THEME_PANEL);
+    // Storage status capsule
+    int by = SCREEN_HEIGHT - 36;
     D->fillRect(0, by, SCREEN_WIDTH, 18, THEME_PANEL);
-    char stor[40];
-    snprintf(stor, sizeof(stor), "FREE %lluMB / %lluMB", (unsigned long long)freeMB, (unsigned long long)totalMB);
-    D->setCursor(6, by + 5);
+    D->drawFastHLine(0, by, SCREEN_WIDTH, THEME_CARD_BORDER);
+
+    // Visual storage percentage bar
+    int usedPercent = totalMB > 0 ? (int)(((totalMB - freeMB) * 100) / totalMB) : 0;
+    if (usedPercent < 0) usedPercent = 0; if (usedPercent > 100) usedPercent = 100;
+    int gaugeX = 140, gaugeW = 90;
+    D->fillRoundRect(gaugeX, by + 4, gaugeW, 8, 3, THEME_SURFACE);
+    int fillW = (usedPercent * gaugeW) / 100;
+    if (fillW > 0) D->fillRoundRect(gaugeX, by + 4, fillW, 8, 3, THEME_GREEN);
+
+    char stor[32];
+    snprintf(stor, sizeof(stor), "SD %lluM/%lluM", (unsigned long long)freeMB, (unsigned long long)totalMB);
+    D->setTextColor(THEME_GREY, THEME_PANEL);
+    D->setCursor(8, by + 5);
     D->print(stor);
-    int usedPct = totalMB > 0 ? (int)(((totalMB - freeMB) * 100) / totalMB) : 0;
-    D->drawRect(SCREEN_WIDTH - 70, by + 4, 60, 9, THEME_DIM_CYAN);
-    D->fillRect(SCREEN_WIDTH - 69, by + 5, (58 * usedPct) / 100, 7, usedPct > 90 ? THEME_CRIMSON : THEME_CYAN);
 
     drawBottomBar("CLICK:Open  L:Up  CLICK-HOLD:Del  MENU:Home");
 }
