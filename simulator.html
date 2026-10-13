@@ -1,0 +1,2502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Axion Cyber Multi-Tool // Hardware Simulator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@500;700;900&display=swap');
+  :root{
+    --cyan:#00F0FF; --green:#39FF14; --amber:#FFB000; --crimson:#FF003C;
+    --panel:#0A0E14; --surface:#151B24; --white:#FFF; --grey:#7B889B; --dim:#073844;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;user-select:none;}
+  body{background:radial-gradient(circle at 50% 25%,#0d131f 0%,#05070a 100%);color:#e0e6ed;
+    font-family:'Share Tech Mono',monospace;min-height:100vh;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;padding:20px;}
+  .header-tag{text-align:center;margin-bottom:16px;}
+  .header-tag h1{font-family:'Orbitron',sans-serif;font-size:24px;letter-spacing:4px;color:var(--cyan);
+    text-shadow:0 0 16px rgba(0,240,255,.6);}
+  .header-tag p{font-size:12px;color:var(--grey);margin-top:4px;letter-spacing:1px;}
+  .device-chassis{position:relative;width:360px;background:linear-gradient(145deg,#18202f,#0d121c);
+    border:3px solid #2a374d;border-radius:28px;padding:22px 20px 26px;
+    box-shadow:0 25px 60px rgba(0,0,0,.8),0 0 30px rgba(0,240,255,.1),inset 0 1px 2px rgba(255,255,255,.15);
+    display:flex;flex-direction:column;align-items:center;}
+  .device-label{width:100%;display:flex;justify-content:space-between;align-items:center;font-size:11px;
+    color:var(--cyan);letter-spacing:1px;margin-bottom:12px;padding:0 6px;}
+  .badge-tag{background:rgba(0,240,255,.1);border:1px solid var(--cyan);border-radius:4px;padding:2px 6px;font-size:9px;}
+  .screen-bezel{width:264px;height:344px;background:#020406;border:3px solid #141b24;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 12px rgba(0,0,0,.9);
+    position:relative;overflow:hidden;}
+  .screen-canvas{width:240px;height:320px;background:#000;display:block;image-rendering:pixelated;}
+  .scanline-overlay{position:absolute;inset:0;pointer-events:none;display:none;}
+  .controls-panel{width:100%;margin-top:20px;display:flex;justify-content:space-between;align-items:center;padding:0 10px;}
+  .joystick-pad{position:relative;width:110px;height:110px;background:#111722;border:2px solid #233044;border-radius:50%;
+    box-shadow:inset 0 4px 8px rgba(0,0,0,.6),0 4px 10px rgba(0,0,0,.4);}
+  .btn-dpad{position:absolute;background:#1a2436;border:1px solid #334460;color:var(--cyan);font-size:11px;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .08s;}
+  .btn-dpad:active{background:var(--cyan);color:#000;transform:scale(.92);}
+  .btn-up{top:6px;left:38px;width:34px;height:28px;border-radius:6px 6px 2px 2px;}
+  .btn-down{bottom:6px;left:38px;width:34px;height:28px;border-radius:2px 2px 6px 6px;}
+  .btn-left{top:38px;left:6px;width:28px;height:34px;border-radius:6px 2px 2px 6px;}
+  .btn-right{top:38px;right:6px;width:28px;height:34px;border-radius:2px 6px 6px 2px;}
+  .btn-center{top:37px;left:37px;width:36px;height:36px;border-radius:50%;
+    background:radial-gradient(circle,#2a374d 30%,#151d2a 90%);border:2px solid var(--cyan);font-size:9px;font-weight:bold;}
+  .action-buttons{display:flex;flex-direction:column;gap:12px;align-items:center;}
+  .shutter-btn{width:74px;height:38px;background:linear-gradient(180deg,#ff003c,#aa0024);border:2px solid #ff4d73;
+    border-radius:8px;color:#fff;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:bold;letter-spacing:1px;
+    cursor:pointer;box-shadow:0 4px 12px rgba(255,0,60,.4);transition:all .08s;}
+  .shutter-btn:active{transform:translateY(2px);}
+  .menu-btn{width:74px;height:32px;background:linear-gradient(180deg,#203046,#131c2a);border:2px solid #00F0FF;
+    border-radius:8px;color:var(--cyan);font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:1px;
+    cursor:pointer;box-shadow:0 3px 8px rgba(0,240,255,.2);transition:all .08s;}
+  .menu-btn:active{transform:translateY(2px);background:var(--cyan);color:#000;}
+  .hint{width:74px;text-align:center;font-size:8px;color:var(--grey);margin-top:-6px;}
+  .key-legend{margin-top:18px;text-align:center;font-size:12px;color:var(--grey);max-width:420px;line-height:1.6;}
+  .key-legend kbd{background:#151c27;border:1px solid #2b394f;border-radius:4px;padding:2px 6px;color:var(--cyan);margin:0 2px;}
+</style>
+</head>
+<body>
+<div class="header-tag">
+  <h1>AXION // CYBER MULTI-TOOL</h1>
+  <p>ESP32-S3 N16R8 FIRMWARE SIMULATOR (ILI9341 240x320) — faithful UI preview</p>
+</div>
+<div class="device-chassis">
+  <div class="device-label"><span>AXION-S3 // REV 2.5</span><span class="badge-tag">OCTAL PSRAM</span></div>
+  <div class="screen-bezel">
+    <canvas id="screen" class="screen-canvas" width="240" height="320"></canvas>
+    <div class="scanline-overlay"></div>
+  </div>
+  <div class="controls-panel">
+    <div class="joystick-pad">
+      <button class="btn-dpad btn-up" onclick="handleInput('UP')">▲</button>
+      <button class="btn-dpad btn-down" onclick="handleInput('DOWN')">▼</button>
+      <button class="btn-dpad btn-left" onclick="handleInput('LEFT')">◀</button>
+      <button class="btn-dpad btn-right" onclick="handleInput('RIGHT')">▶</button>
+      <button class="btn-dpad btn-center" onclick="handleInput('CLICK')">SW</button>
+    </div>
+    <div class="action-buttons">
+      <button class="shutter-btn" onclick="handleInput('SHUTTER')">SNAP</button>
+      <div class="hint">hold = REC</div>
+      <button class="menu-btn" onclick="handleInput('MENU')">MENU</button>
+    </div>
+  </div>
+</div>
+<div class="key-legend">
+  <kbd>▲▼◀▶</kbd> Joystick &nbsp;|&nbsp; <kbd>Enter/Space</kbd> Click &nbsp;|&nbsp;
+  <kbd>S</kbd> Shutter &nbsp;|&nbsp; <kbd>Shift+S</kbd> Hold/Rec &nbsp;|&nbsp; <kbd>M/Esc</kbd> Menu
+</div>
+
+<script src="icons_data.js" onerror="window.iconsMissing=true"></script>
+<script>
+const canvas=document.getElementById('screen');
+const ctx=canvas.getContext('2d');
+const C={bg:'#000',panel:'#070B16',surface:'#111728',cyan:'#00F0FF',green:'#39FF14',
+  amber:'#FFB000',crimson:'#FF003C',white:'#FFF',grey:'#7B889B',dim:'#073844',
+  nebula:'#9B51E0',stellar:'#3377FF',deepSpace:'#03050B',
+  bwBg:'#000000',bwSurface:'#121212',bwCardSel:'#202020',bwBorder:'#4A4A4A',bwWhite:'#FFFFFF',bwSilver:'#CCCCCC',bwMuted:'#808080'};
+function F(px){ctx.font=px+'px "Share Tech Mono"';}
+
+
+// ---------- state ----------
+let mode='BOOT';
+let menuSel=0, menuScroll=0;
+const MENU=[
+  {l:'Camera Viewfinder',s:'Live 20+ FPS & 3MP Capture',ic:'cam',col:C.cyan},
+  {l:'Photo & Video Gallery',s:'Review Photos & Video Clips',ic:'gallery',col:C.white},
+  {l:'SD File Explorer',s:'Browse, View & Delete Files',ic:'sd',col:C.green},
+  {l:'Notepad Text Editor',s:'Create & Edit SD TXT Notes',ic:'note',col:C.cyan},
+  {l:'Cyber Mini-Games',s:'Retro 4-in-1 Space Arcade',ic:'game',col:C.green},
+  {l:'2.4GHz RF Analyzer',s:'126-Ch Spectrum & Waterfall',ic:'spectrum',col:C.amber},
+  {l:'Wi-Fi 802.11 Monitor',s:'Beacon, Deauth & Encryption',ic:'wifi',col:C.green},
+  {l:'BLE Proximity Scanner',s:'Discovery & Manufacturer IDs',ic:'bt',col:C.crimson},
+  {l:'Sub-GHz 433MHz Engine',s:'Raw Pulse Capture & Replay',ic:'subghz',col:C.amber},
+  {l:'Infrared Transceiver',s:'TSOP Capture & Signal Blaster',ic:'ir',col:C.cyan},
+  {l:'Device Feature Guide',s:'Detailed Operation & Controls',ic:'info',col:C.cyan},
+  {l:'System & Settings',s:'Configuration & Diagnostics',ic:'cfg',col:C.white},
+];
+const MENU_VISIBLE=8;
+
+
+// camera state
+let camScene=0, camStillRes=3, camFx=0, camWb=0, camBright=0, camEV=0, camGrid=1, camZoom=1,
+    camFlip=true, camMirror=false, camTimelapse=false, camRec=false, camRecStart=0, quickSel=-1, freezeUntil=0,
+    camRecAnim=0, camRecAnimType='start';
+const scenes=['AUTO','INDOOR','OUTDOOR','NIGHT','MACRO'];
+const stillRes=['VGA','HD','UXGA 2MP','QXGA 3MP'];
+const fxNames=['NORMAL','NEGATIVE','GRAYSCALE','RED MATRIX','GREEN CYBER','BLUE HIFI','RETRO SEPIA','SOLARIZE'];
+const wbNames=['AUTO','SUNNY','CLOUDY','OFFICE','HOME'];
+const gridNames=['NONE','RETICLE','RULE 3RDS','HORIZON'];
+const quickItems=['Scene','Res','FX','WB','Bright','EV','Grid','Zoom','Flip','Mirror','Burst Snap 3x','Timelapse','Close Menu'];
+
+// gallery
+let galIdx=0; let media=[{v:false},{v:false},{v:true},{v:false}];
+let vidPlaying=false, vidFrame=0, vidOpen=false;
+
+// file explorer
+const FS={'/':[{n:'DCIM',d:true},{n:'NOTEPAD',d:true},{n:'PCAP',d:true},{n:'SUBGHZ',d:true},{n:'IR',d:true},{n:'settings.json',d:false,sz:412}],
+  '/DCIM':[{n:'IMG_0001.JPG',d:false,sz:842000},{n:'IMG_0002.JPG',d:false,sz:910400},{n:'VID_0003.AVI',d:false,sz:5400000}],
+  '/NOTEPAD':[{n:'note1.TXT',d:false,sz:38}],
+  '/PCAP':[{n:'dump_0001.pcap',d:false,sz:131072}],
+  '/SUBGHZ':[{n:'SG_0001.sub',d:false,sz:380}],
+  '/IR':[{n:'IR_0001.ir',d:false,sz:260}]};
+let fePath='/', feSel=0, feScroll=0, feView=false, feConfirm=false, feYes=false, feRenaming=false, feExt='';
+
+// settings (sectioned, scrollable)
+// settings (sectioned, scrollable)
+const S_HDR=1;
+let settings={callsign:'OPERATOR_01',startMode:0,bright:80,sound:true,scene:0,stillRes:3,stillQ:6,cbri:0,ccon:1,csat:0,csharp:2,cden:4,cev:0,cgain:2,cwb:0,prev:0,flip:true,mir:false,grid:1,hop:1,
+  imgPrefix:'image',imgIndex:1,promptNaming:true,autoPcap:true,foxSens:65};
+const presetPrefixes=['image','photo','shot','capture','doc','axion'];
+const startModeNames=['MAIN MENU','CAMERA','GALLERY','EXPLORER','NOTEPAD','GAMES','2.4G NRF','WIFI 802.11','BLE SCAN','SUB-GHZ','INFRARED'];
+const gainN=['2X','4X','8X','16X','32X','64X','128X'];
+let configExportStatus = 'SYNC >';
+
+function buildSettings(){
+  return [
+    {h:1,n:'OPERATOR IDENTITY'},
+    {id:'callsign',n:'Callsign',v:settings.callsign},
+    {id:'startMode',n:'Boot Mode',v:startModeNames[settings.startMode%startModeNames.length]},
+    {h:1,n:'DISPLAY'},
+    {id:'bright',n:'Brightness (SW)',v:settings.bright+'%'},
+    {id:'sound',n:'Sound',v:settings.sound?'ON':'MUTED'},
+    {h:1,n:'CAMERA & IMAGE'},
+    {id:'scene',n:'Scene Preset',v:scenes[settings.scene]},
+    {id:'stillRes',n:'Still Resolution',v:stillRes[settings.stillRes]},
+    {id:'stillQ',n:'Still Quality',v:'Q'+settings.stillQ},
+    {id:'cbri',n:'Brightness',v:(settings.cbri>=0?'+':'')+settings.cbri},
+    {id:'ccon',n:'Contrast',v:(settings.ccon>=0?'+':'')+settings.ccon},
+    {id:'csat',n:'Saturation',v:(settings.csat>=0?'+':'')+settings.csat},
+    {id:'csharp',n:'Sharpness',v:''+settings.csharp},
+    {id:'cden',n:'Denoise',v:''+settings.cden},
+    {id:'cev',n:'Exposure EV',v:(settings.cev>=0?'+':'')+settings.cev},
+    {id:'cgain',n:'Gain Ceiling',v:gainN[settings.cgain]},
+    {id:'cwb',n:'White Balance',v:wbNames[settings.cwb]},
+    {id:'prev',n:'Preview Res',v:settings.prev?'VGA':'QVGA'},
+    {id:'flip',n:'V-Flip',v:settings.flip?'ON':'OFF'},
+    {id:'mir',n:'H-Mirror',v:settings.mir?'ON':'OFF'},
+    {id:'grid',n:'Grid Overlay',v:gridNames[settings.grid]},
+    {h:1,n:'IMAGE NAMING & FORMAT'},
+    {id:'prefix',n:'Prefix Base',v:settings.imgPrefix},
+    {id:'imgIndex',n:'Next Index',v:'#'+settings.imgIndex},
+    {id:'prompt',n:'Prompt on Snap',v:settings.promptNaming?'ON':'OFF'},
+    {id:'format',n:'Image Format',v:'JPG (LOCKED)'},
+    {h:1,n:'RADIO'},
+    {id:'hop',n:'Wi-Fi Ch Hop',v:settings.hop+'s'},
+    {h:1,n:'STORAGE'},
+    {id:'bench',n:'SD Benchmark',v:benchVal||'RUN >'},
+    {id:'health',n:'SD Health Test',v:healthVal},
+    {id:'erase',n:'Erase Captures',v:'RUN >'},
+    {id:'files',n:'File Explorer',v:'OPEN >'},
+    {h:1,n:'SMART CONFIG (.INI)'},
+    {id:'cfgExport',n:'Export INI File',v:configExportStatus},
+    {id:'cfgReload',n:'Reload INI File',v:'LOAD >'},
+    {h:1,n:'SYSTEM'},
+    {id:'about',n:'About / Info',v:'OPEN >'},
+    {id:'reset',n:'Reset Defaults',v:'RUN >'},
+    {id:'save',n:'Save & Exit',v:'ENTER >'},
+  ];
+}
+let setSel=1, setScroll=0, benchVal='', healthVal='RUN >', setConfirm=false, setYes=false;
+const SET_VISIBLE=11;
+
+// nrf
+let spectrum=new Array(126).fill(5), waterfall=[], nrfCh=0;
+// wifi/ble
+let wifiAtk=0, bleAtk=0, blePkts=0;
+// subghz / ir
+let sgStatus='', sgColor=C.grey, sgHasCap=false;
+let irHas=false;
+
+// ---------- procedural icons (fallback when icons_data.js absent) ----------
+function drawGlyph(x,y,kind,col){
+  ctx.save();ctx.translate(x,y);ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=1.6;
+  const S=22;
+  if(kind==='cam'){ctx.strokeRect(2,6,18,13);ctx.beginPath();ctx.arc(11,12.5,4,0,7);ctx.stroke();ctx.fillRect(7,3,6,3);}
+  else if(kind==='gallery'){ctx.strokeRect(2,4,18,14);ctx.beginPath();ctx.moveTo(4,16);ctx.lineTo(9,10);ctx.lineTo(13,14);ctx.lineTo(16,11);ctx.lineTo(19,16);ctx.stroke();ctx.beginPath();ctx.arc(7,8,1.6,0,7);ctx.fill();}
+  else if(kind==='sd'){ctx.beginPath();ctx.moveTo(4,2);ctx.lineTo(15,2);ctx.lineTo(19,6);ctx.lineTo(19,20);ctx.lineTo(4,20);ctx.closePath();ctx.stroke();for(let i=0;i<4;i++)ctx.fillRect(6+i*3,3,1.4,3);}
+  else if(kind==='spectrum'){ctx.beginPath();ctx.moveTo(3,18);ctx.lineTo(6,12);ctx.lineTo(9,17);ctx.lineTo(12,5);ctx.lineTo(15,14);ctx.lineTo(18,8);ctx.lineTo(20,18);ctx.stroke();for(let i=4;i<=18;i+=4)ctx.fillRect(i-1,19,2,2);}
+  else if(kind==='radio'){ctx.beginPath();ctx.arc(11,16,2,0,7);ctx.fill();for(let r=5;r<=11;r+=3){ctx.beginPath();ctx.arc(11,16,r,-2.4,-0.75);ctx.stroke();}}
+  else if(kind==='wifi'){ctx.beginPath();ctx.arc(11,17,2,0,7);ctx.fill();for(let r=5;r<=12;r+=3.5){ctx.beginPath();ctx.arc(11,17,r,-2.5,-0.64);ctx.stroke();}}
+  else if(kind==='bt'){ctx.beginPath();ctx.moveTo(8,5);ctx.lineTo(15,9);ctx.lineTo(8,14);ctx.lineTo(8,2);ctx.lineTo(15,7);ctx.lineTo(8,11);ctx.stroke();}
+  else if(kind==='subghz'){ctx.beginPath();ctx.moveTo(2,16);ctx.lineTo(5,16);ctx.lineTo(5,8);ctx.lineTo(9,8);ctx.lineTo(9,16);ctx.lineTo(13,16);ctx.lineTo(13,6);ctx.lineTo(17,6);ctx.lineTo(17,16);ctx.lineTo(20,16);ctx.stroke();}
+  else if(kind==='ir'){ctx.strokeRect(4,10,14,9);ctx.beginPath();ctx.moveTo(11,10);ctx.lineTo(11,3);ctx.moveTo(8,5);ctx.lineTo(14,5);ctx.stroke();ctx.beginPath();ctx.arc(11,14.5,2,0,7);ctx.fill();}
+  else if(kind==='note'){ctx.strokeRect(4,3,14,16);ctx.beginPath();ctx.moveTo(7,7);ctx.lineTo(15,7);ctx.moveTo(7,11);ctx.lineTo(15,11);ctx.moveTo(7,15);ctx.lineTo(12,15);ctx.stroke();}
+  else if(kind==='game'){ctx.beginPath();ctx.moveTo(4,8);ctx.lineTo(7,5);ctx.lineTo(15,5);ctx.lineTo(18,8);ctx.lineTo(18,17);ctx.lineTo(15,19);ctx.lineTo(7,19);ctx.lineTo(4,17);ctx.closePath();ctx.stroke();ctx.fillRect(6,11,4,2);ctx.fillRect(7,10,2,4);ctx.fillRect(13,10,2,2);ctx.fillRect(15,12,2,2);}
+  else if(kind==='info'){ctx.beginPath();ctx.arc(11,11,8.5,0,7);ctx.stroke();ctx.fillRect(10,6,2,2.5);ctx.fillRect(10,10.5,2,6);}
+  else if(kind==='cfg'){ctx.beginPath();ctx.arc(11,11,4,0,7);ctx.stroke();for(let i=0;i<8;i++){const a=i*Math.PI/4;ctx.beginPath();ctx.moveTo(11+Math.cos(a)*6,11+Math.sin(a)*6);ctx.lineTo(11+Math.cos(a)*8.5,11+Math.sin(a)*8.5);ctx.stroke();}}
+  else{ctx.strokeRect(4,4,14,14);}
+  ctx.restore();
+
+}
+function drawIcon(x,y,kind,col,bg){
+  ctx.fillStyle=bg;ctx.fillRect(x,y,22,22);
+  drawGlyph(x,y,kind,col);
+}
+
+let audioCtx = null;
+function playBuzzer(freq, durationMs) {
+  if (!settings.sound) return; // Muted from settings
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + durationMs / 1000);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + durationMs / 1000);
+  } catch(e) {}
+}
+
+// ---------- helpers ----------
+function topBar(title,accent){ctx.fillStyle=C.panel;ctx.fillRect(0,0,240,20);ctx.fillStyle=accent;ctx.fillRect(0,20,240,1);
+  F(10);ctx.fillStyle=accent;ctx.fillText(title,6,14);
+  const bx=192;ctx.strokeStyle=accent;ctx.strokeRect(bx,5,20,10);ctx.fillStyle=accent;ctx.fillRect(bx+20,7,2,6);ctx.fillStyle=C.green;ctx.fillRect(bx+2,7,14,6);
+  ctx.fillStyle=accent;ctx.fillText('96%',bx-26,14);}
+function bottomBar(hint){ctx.fillStyle=C.panel;ctx.fillRect(0,304,240,16);ctx.fillStyle=C.dim;ctx.fillRect(0,303,240,1);
+  F(9);ctx.fillStyle=C.grey;ctx.fillText(hint,6,315);}
+function centerText(t,y,col,px){F(px||10);ctx.fillStyle=col;const w=ctx.measureText(t).width;ctx.fillText(t,(240-w)/2,y);}
+
+function applyBrightness(){
+  const pct=settings.bright; if(pct>=100)return;
+  const dark=100-pct;let acc=0;ctx.fillStyle='#000';
+  for(let y=0;y<320;y++){acc+=dark;if(acc>=100){acc-=100;ctx.fillRect(0,y,240,1);}}
+}
+
+// ---------- SHARED AXION CYBER STAR LOGO (Hardware & Simulator) ----------
+function drawAxionStarLogo(cx, cy, size, glowAlpha, drawChevrons) {
+  if (size < 4) return;
+  const R = size;
+  const r = size * 0.28; // Concave waist pinch
+
+  // Cardinal tips: Up, Down, Left, Right
+  const tU = { x: cx,        y: cy - R };
+  const tD = { x: cx,        y: cy + R };
+  const tL = { x: cx - R,    y: cy };
+  const tR = { x: cx + R,    y: cy };
+
+  // Diagonal inner waist vertices
+  const wUR = { x: cx + r * 0.707, y: cy - r * 0.707 };
+  const wDR = { x: cx + r * 0.707, y: cy + r * 0.707 };
+  const wDL = { x: cx - r * 0.707, y: cy + r * 0.707 };
+  const wUL = { x: cx - r * 0.707, y: cy - r * 0.707 };
+
+  // Celestial shading colors (Starlight Cyan & Celestial Blue contrast)
+  const colLight = C.cyan;
+  const colDark  = C.stellar;
+  const colEdge  = glowAlpha > 0.5 ? C.white : C.cyan;
+
+  function tri(p1, p2, p3, col) {
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.lineTo(p3.x, p3.y);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  const c = { x: cx, y: cy };
+  // Upper-Right quadrant (Starlight Cyan)
+  tri(c, tU, wUR, colLight);
+  tri(c, wUR, tR, colLight);
+
+  // Lower-Right quadrant (Deep Celestial Indigo)
+  tri(c, tR, wDR, colDark);
+  tri(c, wDR, tD, colDark);
+
+  // Lower-Left quadrant (Starlight Cyan)
+  tri(c, tD, wDL, colLight);
+  tri(c, wDL, tL, colLight);
+
+  // Upper-Left quadrant (Deep Celestial Indigo)
+  tri(c, tL, wUL, colDark);
+  tri(c, wUL, tU, colDark);
+
+  // Perimeter outlines
+  ctx.strokeStyle = colEdge;
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(tU.x, tU.y); ctx.lineTo(wUR.x, wUR.y); ctx.lineTo(tR.x, tR.y);
+  ctx.lineTo(wDR.x, wDR.y); ctx.lineTo(tD.x, tD.y); ctx.lineTo(wDL.x, wDL.y);
+  ctx.lineTo(tL.x, tL.y); ctx.lineTo(wUL.x, wUL.y); ctx.closePath();
+  ctx.stroke();
+
+  // Center crosshair divider
+  ctx.strokeStyle = C.white;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(tU.x, tU.y); ctx.lineTo(tD.x, tD.y);
+  ctx.moveTo(tL.x, tL.y); ctx.lineTo(tR.x, tR.y);
+  ctx.stroke();
+
+  // 4 Outer Chevrons pointing outward at each cardinal tip (Cyan glow)
+  if (drawChevrons) {
+    const dist = R + 7;
+    const span = Math.max(4, R * 0.26);
+    ctx.strokeStyle = glowAlpha > 0.6 ? C.cyan : C.dim;
+    ctx.lineWidth = 1.6;
+
+    // Top (^)
+    ctx.beginPath();
+    ctx.moveTo(cx - span, cy - dist + span);
+    ctx.lineTo(cx, cy - dist);
+    ctx.lineTo(cx + span, cy - dist + span);
+    ctx.stroke();
+
+    // Bottom (v)
+    ctx.beginPath();
+    ctx.moveTo(cx - span, cy + dist - span);
+    ctx.lineTo(cx, cy + dist);
+    ctx.lineTo(cx + span, cy + dist - span);
+    ctx.stroke();
+
+    // Left (<)
+    ctx.beginPath();
+    ctx.moveTo(cx - dist + span, cy - span);
+    ctx.lineTo(cx - dist, cy);
+    ctx.lineTo(cx - dist + span, cy + span);
+    ctx.stroke();
+
+    // Right (>)
+    ctx.beginPath();
+    ctx.moveTo(cx + dist - span, cy - span);
+    ctx.lineTo(cx + dist, cy);
+    ctx.lineTo(cx + dist - span, cy + span);
+    ctx.stroke();
+  }
+}
+
+
+// ---------- BOOT (Hyperspace Galaxy Theme) ----------
+let bootStart = 0;
+const warpStars = Array.from({length: 48}, (_, i) => ({
+  angle: i * (Math.PI * 2 / 48) + (i % 5) * 0.12,
+  dist: ((i * 17) % 130 + 10),
+  speed: 1.2 + (i % 7) * 0.5,
+  size: (i % 3 === 0) ? 2 : 1
+}));
+
+const bootStages = [
+  'OCTAL PSRAM 8MB // HYPERBUS LOCK',
+  'HIGH-SPEED SDMMC BUS MOUNTED',
+  'OV3660 ISP SENSOR CALIBRATED',
+  'RADIO & RF MATRIX ARMED',
+  'AXION CYBER CORE // READY'
+];
+
+function renderBoot(ts) {
+  if (!bootStart) bootStart = ts;
+  let elapsed = ts - bootStart;
+  let p = elapsed / 2500; if (p > 1) p = 1;
+  const elapsedSec = elapsed * 0.001;
+  const cx = 120, cy = 110;
+
+  // Deep cosmic black background
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, 240, 320);
+
+  // 1. Radial Hyperspace Warp Starfield
+  const warpSpeedFactor = (p < 0.25) ? (p / 0.25 * 2.8) : 1.6;
+  for (let i = 0; i < warpStars.length; i++) {
+    const st = warpStars[i];
+    st.dist += st.speed * warpSpeedFactor * 1.5;
+    if (st.dist > 160) st.dist = 6;
+
+    const ang = st.angle + elapsedSec * 0.15;
+    const px = cx + Math.cos(ang) * st.dist;
+    const py = cy + Math.sin(ang) * st.dist;
+
+    const tailLen = st.dist * 0.12;
+    const tx = cx + Math.cos(ang) * (st.dist - tailLen);
+    const ty = cy + Math.sin(ang) * (st.dist - tailLen);
+
+    ctx.save();
+    let col = (st.size === 2) ? C.white : C.cyan;
+    if (st.dist < 30) col = C.dim;
+    ctx.strokeStyle = col;
+    ctx.lineWidth = st.size === 2 ? 1.4 : 1;
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(px, py);
+    ctx.stroke();
+
+    if (st.size === 2 && st.dist > 45) {
+      ctx.fillStyle = C.white;
+      ctx.fillRect(px - 0.5, py - 0.5, 1.5, 1.5);
+    }
+    ctx.restore();
+  }
+
+  // 2. Cosmic Nebula Orbiting Wave Rings
+  const wavePulse = Math.sin(elapsedSec * 4.5) * 4;
+  ctx.save();
+  const radGrad = ctx.createRadialGradient(cx, cy, 8, cx, cy, 64 + wavePulse);
+  radGrad.addColorStop(0, 'rgba(155, 81, 224, 0.32)');
+  radGrad.addColorStop(0.55, 'rgba(51, 119, 255, 0.14)');
+  radGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = radGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 64 + wavePulse, 0, 7);
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(155, 81, 224, 0.4)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(cx, cy, 52 - wavePulse * 0.6, 0, 7); ctx.stroke();
+  ctx.strokeStyle = 'rgba(0, 240, 255, 0.25)';
+  ctx.beginPath(); ctx.arc(cx, cy, 40 + wavePulse * 0.8, 0, 7); ctx.stroke();
+
+  // 4 Orbiting Energy Nodes
+  for (let k = 0; k < 4; k++) {
+    const orbAng = elapsedSec * 2.4 + k * (Math.PI * 2 / 4);
+    const ox = cx + Math.cos(orbAng) * (52 - wavePulse * 0.6);
+    const oy = cy + Math.sin(orbAng) * (52 - wavePulse * 0.6);
+    ctx.fillStyle = (k % 2 === 0) ? C.white : C.cyan;
+    ctx.beginPath(); ctx.arc(ox, oy, 1.6, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+
+  // 3. Faceted Star Logo: Smooth fade-in, rock-solid stable size (no pulsing)
+  let starScale = 38;
+  if (p < 0.20) {
+    const bp = p / 0.20;
+    starScale = 38 * (1 - (1 - bp) * (1 - bp));
+  } else {
+    starScale = 38; // Stable, fixed scale
+  }
+
+  drawAxionStarLogo(cx, cy, starScale, p, p > 0.15);
+
+  // 4. Subtle Clean Starlight Center Glint (pure soft central spark, no criss-cross lines)
+  if (p > 0.18) {
+    ctx.save();
+    ctx.fillStyle = C.white;
+    ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, 7); ctx.fill();
+    ctx.strokeStyle = C.cyan; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cx, cy, 3.5, 0, 7); ctx.stroke();
+    ctx.restore();
+  }
+
+
+  // 5. Hologram Typographic Title Reveal
+  let rc = 0; if (p > 0.34) rc = Math.min(5, Math.floor((p - 0.34) / 0.42 * 5) + 1);
+  if (rc > 0) {
+    const t = 'AXION'.slice(0, rc);
+    ctx.font = 'bold 30px Orbitron';
+    const tw = ctx.measureText('AXION').width;
+    // Ambient violet shadow
+    ctx.fillStyle = C.nebula;
+    ctx.fillText(t, (240 - tw) / 2 + 1, 185);
+    // Electric starlight cyan foreground
+    ctx.fillStyle = C.cyan;
+    ctx.fillText(t, (240 - tw) / 2, 184);
+  }
+
+  if (p > 0.52) {
+    F(10);
+    centerText('CYBER MULTI-TOOL // DUAL CORE', 214, C.white, 10);
+    centerText('ESP32-S3 N16R8 v2.5.0', 227, C.grey, 10);
+  }
+
+  // 6. Sleek Starlight Capsule Progress Bar
+  const barX = 26, barY = 254, barW = 188, barH = 6;
+  ctx.strokeStyle = C.dim; ctx.lineWidth = 1;
+  rr(barX - 2, barY - 2, barW + 4, barH + 4, 3); ctx.stroke();
+  const fillW = Math.max(0, Math.floor(barW * p));
+  if (fillW > 0) {
+    const pGrad = ctx.createLinearGradient(barX, barY, barX + fillW, barY);
+    pGrad.addColorStop(0, C.stellar);
+    pGrad.addColorStop(0.85, C.cyan);
+    pGrad.addColorStop(1, C.white);
+    ctx.fillStyle = pGrad;
+    rr(barX, barY, fillW, barH, 2); ctx.fill();
+
+    // Gloss top shine stripe
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fillRect(barX, barY + 1, fillW, 1.2);
+  }
+
+  const si = Math.min(4, Math.floor(p * 5));
+  centerText(p >= 1 ? 'SYSTEMS ARMED // ALL CORES READY' : bootStages[si], 274, p >= 1 ? C.cyan : C.grey, 10);
+
+  if (p >= 1 && !bootStart.done) {
+    bootStart.done = true;
+    setTimeout(() => { mode = 'MENU'; }, 260);
+  }
+}
+
+
+
+// ---------- MENU ----------
+function renderMenu(){
+  if(menuSel<menuScroll)menuScroll=menuSel;
+  if(menuSel>=menuScroll+MENU_VISIBLE)menuScroll=menuSel-MENU_VISIBLE+1;
+  ctx.fillStyle=C.panel;ctx.fillRect(0,0,240,22);ctx.fillStyle=C.cyan;ctx.fillRect(0,22,240,1);
+  F(10);ctx.fillStyle=C.cyan;ctx.fillText('AXION // MULTI-TOOL & CAM',8,14);
+  ctx.fillStyle=C.green;ctx.beginPath();ctx.arc(226,11,3,0,7);ctx.fill();
+  const startY=23,cardH=33,sp=2;
+  for(let r=0;r<MENU_VISIBLE;r++){
+    const i=menuScroll+r; if(i>=MENU.length)break;
+    const it=MENU[i], y=startY+r*(cardH+sp), sel=i===menuSel;
+    ctx.fillStyle=sel?C.surface:C.panel;rr(6,y,228,cardH,4);ctx.fill();
+    ctx.strokeStyle=sel?it.col:C.dim;rr(6,y,228,cardH,4);ctx.stroke();
+    if(sel){ctx.fillStyle=it.col;rr(6,y+2,4,cardH-4,2);ctx.fill();
+      ctx.strokeStyle=it.col;rr(4,y-1,232,cardH+2,5);ctx.stroke();
+      ctx.fillStyle=it.col;rr(216,y+8,14,16,3);ctx.fill();ctx.fillStyle=C.bg;F(11);ctx.fillText('>',221,y+20);}
+    drawIcon(12,y+(cardH-22)/2,it.ic,sel?it.col:C.grey,sel?C.surface:C.panel);
+    F(11);ctx.fillStyle=sel?C.white:C.cyan;ctx.fillText(it.l,40,y+13);
+    F(9);ctx.fillStyle=sel?it.col:C.grey;ctx.fillText(it.s,40,y+26);
+  }
+  if(MENU.length>MENU_VISIBLE){
+    const trackH=278;
+    ctx.fillStyle=C.dim;ctx.fillRect(237,23,1,trackH);
+    const th=trackH*MENU_VISIBLE/MENU.length, ty=23+(trackH-th)*menuScroll/(MENU.length-MENU_VISIBLE);
+    ctx.fillStyle=C.cyan;ctx.fillRect(236,ty,3,th);
+  }
+
+  bottomBar('SD:OK | 4.12V 96% | 22 FPS');
+}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+
+// ---------- CAMERA ----------
+let animT=0;
+function cameraFeed(){
+  animT+=0.03;
+  const g=ctx.createLinearGradient(0,0,0,320);g.addColorStop(0,'#0a1420');g.addColorStop(.5,'#1e2d42');g.addColorStop(1,'#05080c');
+  ctx.fillStyle=g;ctx.fillRect(0,0,240,320);
+  ctx.strokeStyle=C.cyan;ctx.lineWidth=1;ctx.beginPath();
+  for(let x=0;x<240;x+=10){const y=180+Math.sin(x*0.05+animT)*12+Math.cos(x*0.02)*15;x?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();
+  ctx.strokeStyle='rgba(0,240,255,.25)';for(let y=190;y<320;y+=14){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(240,y);ctx.stroke();}
+  for(let x=-80;x<=320;x+=40){ctx.beginPath();ctx.moveTo(120,180);ctx.lineTo(x,320);ctx.stroke();}
+  ctx.fillStyle=C.crimson;ctx.beginPath();ctx.arc(120,130,26,0,7);ctx.fill();
+  ctx.fillStyle=C.amber;ctx.beginPath();ctx.arc(120,130,20,0,7);ctx.fill();
+  // filters
+  if(camFx){let d=ctx.getImageData(0,0,240,320),a=d.data;
+    for(let i=0;i<a.length;i+=4){
+      if(camFx===1){a[i]=255-a[i];a[i+1]=255-a[i+1];a[i+2]=255-a[i+2];}
+      else if(camFx===2){const v=(a[i]+a[i+1]+a[i+2])/3;a[i]=a[i+1]=a[i+2]=v;}
+      else if(camFx===3){a[i+1]*=.15;a[i+2]*=.15;}
+      else if(camFx===4){a[i]*=.15;a[i+2]*=.15;}
+      else if(camFx===5){a[i]*=.15;a[i+1]*=.4;}
+      else if(camFx===6){const r=a[i],gg=a[i+1],b=a[i+2];a[i]=Math.min(255,r*.393+gg*.769+b*.189);a[i+1]=Math.min(255,r*.349+gg*.686+b*.168);a[i+2]=Math.min(255,r*.272+gg*.534+b*.131);}
+    }ctx.putImageData(d,0,0);}
+}
+function renderCamera(){
+  cameraFeed();
+  const cx=120,cy=160;
+  if(camGrid===1){ctx.strokeStyle=C.green;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx-14,cy);ctx.lineTo(cx+14,cy);ctx.moveTo(cx,cy-14);ctx.lineTo(cx,cy+14);ctx.stroke();
+    ctx.strokeStyle=C.cyan;ctx.strokeRect(cx-24,cy-24,48,48);ctx.beginPath();ctx.arc(cx,cy,38,0,7);ctx.stroke();
+    const b=14;ctx.beginPath();ctx.moveTo(10,24+b);ctx.lineTo(10,24);ctx.lineTo(10+b,24);ctx.moveTo(230-b,24);ctx.lineTo(230,24);ctx.lineTo(230,24+b);
+    ctx.moveTo(10,296-b);ctx.lineTo(10,296);ctx.lineTo(10+b,296);ctx.moveTo(230-b,296);ctx.lineTo(230,296);ctx.lineTo(230,296-b);ctx.stroke();}
+  else if(camGrid===2){ctx.strokeStyle='rgba(0,240,255,.4)';ctx.beginPath();ctx.moveTo(80,20);ctx.lineTo(80,300);ctx.moveTo(160,20);ctx.lineTo(160,300);ctx.moveTo(0,107);ctx.lineTo(240,107);ctx.moveTo(0,213);ctx.lineTo(240,213);ctx.stroke();}
+  else if(camGrid===3){ctx.strokeStyle=C.green;ctx.beginPath();ctx.moveTo(20,cy);ctx.lineTo(220,cy);ctx.moveTo(cx,cy-8);ctx.lineTo(cx,cy+8);ctx.stroke();}
+  // top HUD
+  ctx.fillStyle=C.panel;ctx.fillRect(0,0,240,20);ctx.fillStyle=C.green;ctx.fillRect(0,20,240,1);
+  F(10);ctx.fillStyle=C.green;ctx.fillText('23FPS '+(settings.prev?'VGA':'QVGA'),6,14);
+  if(camRec){const s=Math.floor((Date.now()-camRecStart)/1000);if(Math.floor(Date.now()/500)%2){ctx.fillStyle=C.crimson;ctx.beginPath();ctx.arc(104,10,4,0,7);ctx.fill();}
+    ctx.fillStyle=C.crimson;ctx.fillText('REC '+String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'),112,14);}
+  else if(camTimelapse){ctx.fillStyle=C.amber;ctx.fillText('TIMELAPSE',104,14);}
+  else{ctx.fillStyle=C.cyan;ctx.fillText(fxNames[camFx]+' '+camZoom.toFixed(1)+'x',100,14);}
+  ctx.fillStyle=C.white;ctx.fillText('SD 14G',184,14);
+  // bottom
+  ctx.fillStyle=C.panel;ctx.fillRect(0,300,240,20);ctx.fillStyle=C.cyan;ctx.fillRect(0,300,240,1);
+  F(9);ctx.fillStyle=C.white;ctx.fillText(quickSel>=0?'U/D:Nav  L/R:Adjust  CLICK:Select':'SNAP:Photo CLICK:Menu HOLD:Rec ['+scenes[camScene]+']',6,313);
+  if(quickSel>=0)renderQuick();
+  if(simNamingActive)renderNamingDialog();
+  if(freezeUntil>Date.now()){
+    const rem = freezeUntil - Date.now();
+    // Shutter flash iris effect
+    if(rem > 550) {
+      ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.fillRect(0,0,240,320);
+      ctx.strokeStyle = C.cyan; ctx.lineWidth = 3; ctx.strokeRect(4,4,232,312);
+      ctx.strokeStyle = C.white; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(120, 160, (800 - rem) * 0.25, 0, 7); ctx.stroke();
+    } else {
+      ctx.strokeStyle = C.white; ctx.lineWidth = 2; ctx.strokeRect(0,0,240,320);
+      ctx.strokeStyle = C.cyan; ctx.lineWidth = 1; ctx.strokeRect(2,2,236,316);
+    }
+    const w=196,h=26,x=(240-w)/2;ctx.fillStyle=C.panel;rr(x,250,w,h,4);ctx.fill();
+    ctx.strokeStyle=C.green;rr(x,250,w,h,4);ctx.stroke();
+    ctx.fillStyle=C.green;ctx.beginPath();ctx.arc(x+14,263,4,0,7);ctx.fill();
+    ctx.fillStyle=C.green;F(10);ctx.fillText('SAVED: '+savedFileName+' // '+stillRes[camStillRes],x+26,267);
+  }
+  if(camRecAnim>Date.now()){
+    const cx=120,cy=160;
+    if(camRecAnimType==='start'){
+      ctx.strokeStyle=C.crimson;ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(cx,cy,38,0,7);ctx.stroke();
+      ctx.fillStyle=C.crimson;ctx.beginPath();ctx.arc(cx,cy,22,0,7);ctx.fill();
+      ctx.fillStyle=C.white;ctx.beginPath();ctx.arc(cx,cy,8,0,7);ctx.fill();
+      const bw=160,bh=24,bx=(240-bw)/2,by=cy+42;
+      ctx.fillStyle=C.panel;rr(bx,by,bw,bh,4);ctx.fill();
+      ctx.strokeStyle=C.crimson;rr(bx,by,bw,bh,4);ctx.stroke();
+      ctx.fillStyle=C.white;F(9);ctx.fillText('REC // RECORDING START',bx+16,by+15);
+    } else {
+      ctx.strokeStyle=C.amber;ctx.lineWidth=2;
+      rr(cx-26,cy-26,52,52,4);ctx.stroke();
+      ctx.fillStyle=C.amber;ctx.fillRect(cx-12,cy-12,24,24);
+      const bw=160,bh=24,bx=(240-bw)/2,by=cy+42;
+      ctx.fillStyle=C.panel;rr(bx,by,bw,bh,4);ctx.fill();
+      ctx.strokeStyle=C.amber;rr(bx,by,bw,bh,4);ctx.stroke();
+      ctx.fillStyle=C.amber;F(9);ctx.fillText('SAVED // VIDEO ENCODED',bx+16,by+15);
+    }
+  }
+}
+function quickVal(i){
+  switch(i){case 0:return'Scene: '+scenes[camScene];case 1:return'Res: '+stillRes[camStillRes];case 2:return'FX: '+fxNames[camFx];
+    case 3:return'WB: '+wbNames[camWb];case 4:return'Bright: '+(camBright>=0?'+':'')+camBright;case 5:return'EV: '+(camEV>=0?'+':'')+camEV;
+    case 6:return'Grid: '+gridNames[camGrid];case 7:return'Zoom: '+camZoom.toFixed(1)+'x';case 8:return'Flip: '+(camFlip?'ON':'OFF');
+    case 9:return'Mirror: '+(camMirror?'ON':'OFF');case 10:return'Burst Snap 3x';case 11:return'Timelapse: '+(camTimelapse?'ON':'OFF');default:return'Close Menu';}
+}
+function renderQuick(){
+  const n=quickItems.length,rowH=17,w=184,h=n*rowH+14,x=(240-w)/2,y=(320-h)/2;
+  ctx.fillStyle='rgba(10,14,20,.95)';ctx.fillRect(x,y,w,h);ctx.strokeStyle=C.cyan;ctx.strokeRect(x,y,w,h);
+  ctx.strokeStyle=C.dim;ctx.strokeRect(x+2,y+2,w-4,h-4);
+  for(let i=0;i<n;i++){const ry=y+8+i*rowH,sel=i===quickSel;
+    if(sel){ctx.fillStyle=C.surface;ctx.fillRect(x+4,ry-2,w-8,rowH-1);ctx.strokeStyle=C.green;ctx.strokeRect(x+4,ry-2,w-8,rowH-1);ctx.fillStyle=C.green;F(10);ctx.fillText('> '+quickVal(i),x+8,ry+9);}
+    else{ctx.fillStyle=C.white;F(10);ctx.fillText('  '+quickVal(i),x+8,ry+9);}}
+}
+
+// ---------- PHOTO NAMING KEYBOARD MODAL ----------
+let simNamingActive = false;
+let simNamingBuffer = 'image';
+let simKbdRow = -1; // -1 = top action buttons, 0..3 = key rows
+let simKbdCol = 1;  // focused on SAVE initially
+let savedFileName = 'image.JPG';
+const simKbdRows = [
+  "1234567890",
+  "QWERTYUIOP",
+  "ASDFGHJKL_",
+  "ZXCVBNM.-/"
+];
+
+function renderNamingDialog(titleText, formatText) {
+  // Slim Bottom-Docked Virtual Keyboard Panel (h = 116px, y = 202)
+  const dw = 232, dh = 116, dx = 4, dy = 320 - dh - 2;
+  ctx.fillStyle = C.panel; rr(dx, dy, dw, dh, 5); ctx.fill();
+  ctx.strokeStyle = C.cyan; rr(dx, dy, dw, dh, 5); ctx.stroke();
+
+  // Header & locked format badge
+  F(9); ctx.fillStyle = C.cyan; ctx.fillText(titleText || 'NAME PHOTO', dx + 8, dy + 11);
+  const fmt = (formatText !== undefined) ? formatText : 'JPG';
+  if (fmt) {
+    ctx.fillStyle = C.amber;
+    ctx.fillText(`[.${fmt} LOCKED]`, dx + dw - 74, dy + 11);
+  }
+
+  // Input Box (thin single-line) with room for top-right DEL & SAVE buttons
+  const tbX = dx + 6, tbY = dy + 16, tbW = dw - 78, tbH = 18;
+  ctx.fillStyle = C.surface; rr(tbX, tbY, tbW, tbH, 3); ctx.fill();
+  ctx.strokeStyle = C.dim; rr(tbX, tbY, tbW, tbH, 3); ctx.stroke();
+
+  // Buffer text + locked extension
+  F(10); ctx.fillStyle = C.white; ctx.fillText(simNamingBuffer, tbX + 6, tbY + 13);
+  const curX = tbX + 6 + ctx.measureText(simNamingBuffer).width;
+  ctx.fillStyle = C.cyan; ctx.fillRect(curX, tbY + 4, 2, 10);
+  if (fmt) {
+    ctx.fillStyle = C.grey; ctx.fillText('.' + fmt, curX + 4, tbY + 13);
+  }
+
+  // Top-Right Action Buttons: DEL and SAVE
+  const delX = tbX + tbW + 4, delW = 32;
+  const delSel = (simKbdRow === -1 && simKbdCol === 0);
+  ctx.fillStyle = delSel ? C.crimson : C.surface; rr(delX, tbY, delW, tbH, 3); ctx.fill();
+  ctx.strokeStyle = delSel ? C.white : C.crimson; rr(delX, tbY, delW, tbH, 3); ctx.stroke();
+  ctx.fillStyle = delSel ? C.white : C.crimson; F(8); ctx.fillText('DEL', delX + 8, tbY + 12);
+
+  const saveX = delX + delW + 3, saveW = 34;
+  const saveSel = (simKbdRow === -1 && simKbdCol === 1);
+  ctx.fillStyle = saveSel ? C.green : C.surface; rr(saveX, tbY, saveW, tbH, 3); ctx.fill();
+  ctx.strokeStyle = saveSel ? C.white : C.green; rr(saveX, tbY, saveW, tbH, 3); ctx.stroke();
+  ctx.fillStyle = saveSel ? C.bg : C.green; F(8); ctx.fillText('SAVE', saveX + 6, tbY + 12);
+
+  // Symmetrical 10-Key x 4-Row Virtual Keyboard (Keys: 20x16px, 3px pad)
+  const kY = dy + 38, keyW = 20, keyH = 16, kPad = 3;
+  for (let r = 0; r < 4; r++) {
+    const rStartX = dx + 5;
+    for (let c = 0; c < 10; c++) {
+      const kx = rStartX + c * (keyW + kPad);
+      const ky = kY + r * (keyH + kPad);
+      const isSel = (r === simKbdRow && c === simKbdCol);
+      ctx.fillStyle = isSel ? C.cyan : C.surface; rr(kx, ky, keyW, keyH, 2); ctx.fill();
+      if (isSel) { ctx.strokeStyle = C.white; rr(kx, ky, keyW, keyH, 2); ctx.stroke(); }
+      ctx.fillStyle = isSel ? C.bg : C.white; F(9);
+      ctx.fillText(simKbdRows[r][c], kx + 7, ky + 12);
+    }
+  }
+}
+
+
+
+// ---------- GALLERY ----------
+function renderGallery(){
+  if(vidOpen){renderVideo();return;}
+  topBar(media[galIdx]&&media[galIdx].v?'GALLERY // VIDEO':'GALLERY // PHOTO',C.cyan);
+  if(media.length===0){centerText('NO MEDIA ON SD CARD',150,C.amber,10);bottomBar('MENU:Home');return;}
+  const vy=26,vh=244;ctx.strokeStyle=C.dim;ctx.strokeRect(6,vy,228,vh);
+  const it=media[galIdx];
+  if(it.v){ctx.fillStyle=C.surface;ctx.fillRect(8,vy+2,224,vh-4);
+    for(let sx=14;sx<226;sx+=20){ctx.fillStyle=C.panel;ctx.fillRect(sx,vy+10,12,9);ctx.fillRect(sx,vy+vh-20,12,9);}
+    ctx.fillStyle=C.panel;ctx.beginPath();ctx.arc(120,vy+vh/2,26,0,7);ctx.fill();ctx.strokeStyle=C.green;ctx.beginPath();ctx.arc(120,vy+vh/2,26,0,7);ctx.stroke();
+    ctx.fillStyle=C.green;ctx.beginPath();ctx.moveTo(111,vy+vh/2-13);ctx.lineTo(111,vy+vh/2+13);ctx.lineTo(135,vy+vh/2);ctx.closePath();ctx.fill();}
+  else{const pg=ctx.createLinearGradient(8,vy,8,vy+vh);pg.addColorStop(0,'#1a304a');pg.addColorStop(.7,'#0b1624');ctx.fillStyle=pg;ctx.fillRect(8,vy+2,224,vh-4);
+    ctx.fillStyle=C.amber;ctx.beginPath();ctx.arc(80+galIdx*12,90,24,0,7);ctx.fill();
+    F(11);ctx.fillStyle=C.cyan;ctx.fillText('CAPTURE #'+(galIdx+1),24,180);F(9);ctx.fillStyle=C.grey;ctx.fillText('2048x1536 (3MP) Q6',24,198);}
+  ctx.fillStyle=C.panel;ctx.fillRect(0,288,240,16);F(9);ctx.fillStyle=C.green;
+  ctx.fillText('['+(galIdx+1)+'/'+media.length+'] /DCIM/'+(it.v?'VID_000':'IMG_000')+galIdx+(it.v?'.AVI':'.JPG'),6,300);
+  bottomBar(it.v?'CLICK:Play  L/R:Browse  MENU:Home':'L/R:Browse  CLICK:Delete  MENU:Home');
+}
+function renderVideo(){
+  vidFrame=(vidFrame+(vidPlaying?1:0));
+  const g=ctx.createLinearGradient(0,22,0,260);g.addColorStop(0,'#102030');g.addColorStop(1,'#05080c');ctx.fillStyle=g;ctx.fillRect(0,22,240,238);
+  ctx.strokeStyle=C.green;ctx.lineWidth=1;ctx.beginPath();for(let x=0;x<240;x+=8){const y=140+Math.sin(x*0.08+vidFrame*0.1)*30;x?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();
+  ctx.fillStyle=C.panel;ctx.fillRect(0,0,240,20);ctx.fillStyle=C.crimson;ctx.fillRect(0,20,240,1);
+  F(10);ctx.fillStyle=C.crimson;ctx.fillText((vidPlaying?'> PLAY':'|| PAUSE')+'  FRAME '+(vidFrame%120+1)+'/120',6,14);
+  ctx.fillStyle=C.surface;ctx.fillRect(6,286,228,4);ctx.fillStyle=C.green;ctx.fillRect(6,286,228*((vidFrame%120)/120),4);
+  bottomBar('CLICK:Play/Pause  L/R:Seek  MENU:Back');
+}
+
+// ---------- NOTEPAD TEXT EDITOR (REVAMPED CYBER EDITOR) ----------
+let noteContent = "";
+let noteFileCount = 1;
+let noteName = "note_001";
+let noteNamingStep = false;
+let noteKbdRow = 0;
+let noteKbdCol = 0;
+let noteToastUntil = 0;
+let noteExitPrompt = false;
+let noteExitChoice = 0; // 0 = SAVE & EXIT, 1 = DISCARD
+let noteIsDirty = false;
+
+function renderNotepad(){
+  topBar('NOTEPAD // CYBER EDITOR', C.cyan);
+
+  // Document Page Surface (y = 22 to 194, h = 172px)
+  const docX = 4, docY = 22, docW = 232, docH = 172;
+  ctx.fillStyle = C.surface; rr(docX, docY, docW, docH, 4); ctx.fill();
+  ctx.strokeStyle = C.dim; rr(docX, docY, docW, docH, 4); ctx.stroke();
+
+  // File header ribbon inside document
+  const charCount = noteContent.length;
+  F(9); ctx.fillStyle = C.cyan;
+  ctx.fillText('FILE: ', docX + 6, docY + 11);
+  ctx.fillStyle = C.white;
+  ctx.fillText(noteName + '.TXT', docX + 38, docY + 11);
+
+  const statInfo = `${charCount}B  C:${charCount}`;
+  const statW = ctx.measureText(statInfo).width;
+  ctx.fillStyle = C.grey;
+  ctx.fillText(statInfo, docX + docW - statW - 6, docY + 11);
+
+  // Subtle header separator line
+  ctx.strokeStyle = 'rgba(0, 229, 255, 0.25)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(docX + 2, docY + 15); ctx.lineTo(docX + docW - 2, docY + 15); ctx.stroke();
+
+  // Margin line for line numbering
+  ctx.strokeStyle = '#086255'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(docX + 22, docY + 16); ctx.lineTo(docX + 22, docY + docH - 2); ctx.stroke();
+
+  // Line numbers & text layout
+  F(9);
+  const textX = docX + 26, textY = docY + 27, lineSpacing = 12, maxLines = 12;
+  let cx = textX, cy = textY, curLine = 0;
+
+  // Draw initial line number "01"
+  ctx.fillStyle = C.dim;
+  ctx.fillText('01', docX + 5, textY);
+
+  if (noteContent.length === 0) {
+    ctx.fillStyle = 'rgba(0, 229, 255, 0.45)';
+    ctx.fillText('[ CLEAN NEW FILE - TYPE BELOW ]', textX, textY);
+    cx = textX;
+  } else {
+    ctx.fillStyle = C.white;
+    for (let i = 0; i < noteContent.length; i++) {
+      const ch = noteContent[i];
+      if (ch === '\n') {
+        curLine++;
+        cx = textX;
+        cy += lineSpacing;
+        if (curLine >= maxLines) break;
+        ctx.fillStyle = C.dim;
+        ctx.fillText(String(curLine + 1).padStart(2, '0'), docX + 5, cy);
+        ctx.fillStyle = C.white;
+        continue;
+      }
+      const cw = ctx.measureText(ch).width;
+      if (cx + cw > docX + docW - 8) {
+        curLine++;
+        cx = textX;
+        cy += lineSpacing;
+        if (curLine >= maxLines) break;
+        ctx.fillStyle = C.dim;
+        ctx.fillText(String(curLine + 1).padStart(2, '0'), docX + 5, cy);
+        ctx.fillStyle = C.white;
+      }
+      ctx.fillText(ch, cx, cy);
+      cx += cw;
+    }
+  }
+
+  // Blinking active cursor
+  if (!noteNamingStep && Math.floor(Date.now() / 350) % 2 === 0) {
+    ctx.fillStyle = C.cyan;
+    ctx.fillRect(cx + 1, cy - 8, 4, 10);
+  }
+
+  // Save Toast Notification overlay
+  if (Date.now() < noteToastUntil) {
+    const tw = 180, th = 30;
+    const tx = (240 - tw) / 2;
+    const ty = docY + 50;
+    ctx.fillStyle = C.panel; rr(tx, ty, tw, th, 4); ctx.fill();
+    ctx.strokeStyle = C.green; rr(tx, ty, tw, th, 4); ctx.stroke();
+    F(9); ctx.fillStyle = C.green;
+    ctx.fillText('FILE SAVED TO /NOTEPAD', tx + 20, ty + 18);
+  }
+
+  // Virtual Cyber Keyboard Docked at bottom (y = 196 to 300, h = 104)
+  if (noteNamingStep) {
+    const savedNamingBuf = simNamingBuffer;
+    const savedRow = simKbdRow;
+    const savedCol = simKbdCol;
+    simNamingBuffer = noteName;
+    simKbdRow = noteKbdRow;
+    simKbdCol = noteKbdCol;
+    renderNamingDialog('SAVE TO /NOTEPAD', 'TXT');
+    simNamingBuffer = savedNamingBuf;
+    simKbdRow = savedRow;
+    simKbdCol = savedCol;
+    return;
+  }
+
+  const kbX = 4, kbY = 196, kbW = 232, kbH = 104;
+  ctx.fillStyle = C.panel; rr(kbX, kbY, kbW, kbH, 4); ctx.fill();
+  ctx.strokeStyle = C.cyan; rr(kbX, kbY, kbW, kbH, 4); ctx.stroke();
+
+  // Row -1: Action Bar (5 fast action keys: [DEL], [SPACE], [ENTER], [NEW], [SAVE])
+  const actLabels = ["DEL", "SPACE", "ENTER", "NEW", "SAVE"];
+  const actColors = [C.crimson, C.cyan, C.amber, C.grey, C.green];
+  const actW = [38, 44, 44, 38, 46];
+  let curAx = kbX + 6;
+
+  F(9);
+  for (let a = 0; a < 5; a++) {
+    const sel = (noteKbdRow === -1 && noteKbdCol === a);
+    const col = actColors[a];
+    ctx.fillStyle = sel ? col : C.surface;
+    rr(curAx, kbY + 4, actW[a], 16, 2); ctx.fill();
+    ctx.strokeStyle = sel ? C.white : col;
+    rr(curAx, kbY + 4, actW[a], 16, 2); ctx.stroke();
+
+    ctx.fillStyle = sel ? '#000000' : col;
+    const lw = ctx.measureText(actLabels[a]).width;
+    ctx.fillText(actLabels[a], curAx + (actW[a] - lw) / 2, kbY + 15);
+    curAx += actW[a] + 4;
+  }
+
+  // Rows 0..3: 10-Key x 4-Row Character Matrix
+  const kbdMatrix = [
+    "1234567890",
+    "QWERTYUIOP",
+    "ASDFGHJKL-",
+    "ZXCVBNM.,/"
+  ];
+  const kStartY = kbY + 24;
+  const kKeyW = 20, kKeyH = 16, kPad = 3;
+
+  for (let r = 0; r < 4; r++) {
+    const rStartX = kbX + 5;
+    for (let c = 0; c < 10; c++) {
+      const kx = rStartX + c * (kKeyW + kPad);
+      const ky = kStartY + r * (kKeyH + kPad);
+      const isSel = (noteKbdRow === r && noteKbdCol === c);
+
+      ctx.fillStyle = isSel ? C.cyan : C.surface;
+      rr(kx, ky, kKeyW, kKeyH, 2); ctx.fill();
+      if (isSel) {
+        ctx.strokeStyle = C.white;
+        rr(kx, ky, kKeyW, kKeyH, 2); ctx.stroke();
+      }
+
+      ctx.fillStyle = isSel ? '#000000' : C.white;
+      ctx.fillText(kbdMatrix[r][c], kx + 7, ky + 12);
+    }
+  }
+
+  // Exit Confirmation Dialog Overlay (SAVE vs DISCARD)
+  if (noteExitPrompt) {
+    const pw = 216, ph = 96;
+    const px = (240 - pw) / 2;
+    const py = 88;
+
+    // Dark modal backdrop with amber cyber border
+    ctx.fillStyle = C.panel; rr(px, py, pw, ph, 5); ctx.fill();
+    ctx.strokeStyle = C.amber; ctx.lineWidth = 2; rr(px, py, pw, ph, 5); ctx.stroke();
+    ctx.lineWidth = 1;
+
+    // Header warning
+    F(10); ctx.fillStyle = C.amber;
+    ctx.fillText('! UNSAVED NOTE CHANGES !', px + 18, py + 20);
+
+    // Subtitle message
+    F(9); ctx.fillStyle = C.white;
+    ctx.fillText('Save or discard before exit?', px + 18, py + 34);
+
+    // Option Buttons: [SAVE & EXIT] vs [DISCARD]
+    const btnW = 90, btnH = 22;
+    const btnY = py + 46;
+
+    // Button 0: SAVE & EXIT
+    const b0X = px + 12;
+    const b0Sel = (noteExitChoice === 0);
+    ctx.fillStyle = b0Sel ? C.green : C.surface;
+    rr(b0X, btnY, btnW, btnH, 3); ctx.fill();
+    ctx.strokeStyle = b0Sel ? C.white : C.green;
+    rr(b0X, btnY, btnW, btnH, 3); ctx.stroke();
+    ctx.fillStyle = b0Sel ? '#000000' : C.green;
+    ctx.fillText('SAVE & EXIT', b0X + 14, btnY + 15);
+
+    // Button 1: DISCARD
+    const b1X = px + pw - btnW - 12;
+    const b1Sel = (noteExitChoice === 1);
+    ctx.fillStyle = b1Sel ? C.crimson : C.surface;
+    rr(b1X, btnY, btnW, btnH, 3); ctx.fill();
+    ctx.strokeStyle = b1Sel ? C.white : C.crimson;
+    rr(b1X, btnY, btnW, btnH, 3); ctx.stroke();
+    ctx.fillStyle = b1Sel ? C.white : C.crimson;
+    ctx.fillText('DISCARD', b1X + 22, btnY + 15);
+
+    // Footer hint
+    ctx.fillStyle = C.grey;
+    ctx.fillText('L/R:Select  CLICK:OK  MENU:Cancel', px + 18, py + 84);
+
+    bottomBar('L/R:Select  CLICK:Confirm  MENU:Cancel');
+    return;
+  }
+
+  bottomBar('JOY:Keys  CLICK:Type  SHUTTER:Save  MENU:Exit');
+}
+
+// ---------- RETRO MINI-GAMES (4-IN-1 SPACE ARCADE) ----------
+let simGameId = 0;       // 0=Menu, 1=Snake, 2=Pong, 3=Flappy, 4=Breakout
+let simSubState = 0;     // 0=Running, 1=Pause, 2=Game Over
+let simGameScore = 0;
+let simHighScore = [0, 0, 0, 0, 0];
+let simGameSel = 0;
+let simLastTick = 0;
+let simSpaceSeed = 42;
+
+// Snake state
+let simSnake = [{x:10,y:12},{x:9,y:12},{x:8,y:12},{x:7,y:12}];
+let simSnakeDir = 0; // 0=Right, 1=Down, 2=Left, 3=Up
+let simFood = {x:18,y:12};
+
+// Pong state
+let simPongPlayerY = 140, simPongAiY = 140;
+let simBallX = 120, simBallY = 150;
+let simBallVx = 3, simBallVy = 2;
+
+// Flappy state
+let simFlappyY = 140;
+let simFlappyVy = 0.0;
+let simPipeX = 220;
+let simPipeGapY = 90;
+
+// Breakout state
+let simBreakoutPadX = 100;
+let simBreakoutBallX = 120, simBreakoutBallY = 180;
+let simBreakoutBallVx = 3, simBreakoutBallVy = -3;
+let simBreakoutBricks = new Array(24).fill(1);
+
+function resetSimSnake(){
+  simSnake=[{x:10,y:12},{x:9,y:12},{x:8,y:12},{x:7,y:12}];
+  simSnakeDir=0; simFood={x:18,y:12}; simGameScore=0; simSubState=0;
+}
+function resetSimPong(){
+  simPongPlayerY=140; simPongAiY=140; simBallX=120; simBallY=150;
+  simBallVx=3; simBallVy=2; simGameScore=0; simSubState=0;
+}
+function resetSimFlappy(){
+  simFlappyY=140; simFlappyVy=0.0; simPipeX=220; simPipeGapY=90;
+  simGameScore=0; simSubState=0;
+}
+function resetSimBreakout(){
+  simBreakoutPadX=100; simBreakoutBallX=120; simBreakoutBallY=180;
+  simBreakoutBallVx=3; simBreakoutBallVy=-3; simBreakoutBricks.fill(1);
+  simGameScore=0; simSubState=0;
+}
+
+function drawSpaceBackground(px, py, pw, ph, seed, now){
+  // Deep space base
+  ctx.fillStyle = '#03050b';
+  rr(px, py, pw, ph, 4); ctx.fill();
+
+  // Pseudo-random twinkling stars
+  let rng = (seed === 0) ? 133742 : (seed >>> 0);
+  for(let i = 0; i < 34; i++){
+    rng = (rng * 1664525 + 1013904223) >>> 0;
+    const sx = px + 4 + (rng % (pw - 8));
+    rng = (rng * 1664525 + 1013904223) >>> 0;
+    const sy = py + 22 + (rng % (ph - 26));
+
+    const twinkle = ((Math.floor(now / 320) + i * 5) % 6 === 0);
+    const starCol = (i % 3 === 0) ? C.cyan : (i % 5 === 0 ? C.amber : C.white);
+    if(twinkle){
+      ctx.fillStyle = C.white;
+      ctx.fillRect(sx, sy, 1.8, 1.8);
+      if(i % 4 === 0){
+        ctx.fillStyle = 'rgba(0, 240, 255, 0.4)';
+        ctx.fillRect(sx - 1, sy, 3.8, 1.8);
+        ctx.fillRect(sx, sy - 1, 1.8, 3.8);
+      }
+    } else {
+      ctx.fillStyle = (i % 2 === 0) ? starCol : C.dim;
+      ctx.fillRect(sx, sy, 1.2, 1.2);
+    }
+  }
+
+  // Randomized celestial scenery
+  const celestialType = (seed & 0x7fff) % 4;
+  if(celestialType === 0){
+    // Ringed Gas Giant Planet (Upper Right)
+    const cx = px + pw - 46, cy = py + 54, r = 14;
+    ctx.fillStyle = C.panel; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill();
+    ctx.strokeStyle = C.cyan; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke();
+    ctx.strokeStyle = C.dim; ctx.beginPath(); ctx.arc(cx + 1, cy, r - 3, 0, 7); ctx.stroke();
+    // Planetary rings
+    ctx.strokeStyle = C.amber; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 24, 7, -0.3, 0, Math.PI * 2);
+    ctx.stroke();
+  } else if(celestialType === 1){
+    // Glowing Cyber Moon with craters (Upper Left)
+    const cx = px + 46, cy = py + 58, r = 16;
+    ctx.fillStyle = C.panel; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill();
+    ctx.strokeStyle = C.white; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke();
+    ctx.fillStyle = C.dim;
+    ctx.beginPath(); ctx.arc(cx - 5, cy - 3, 3, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 4, cy + 4, 4, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx - 2, cy + 7, 2, 0, 7); ctx.fill();
+  } else if(celestialType === 2){
+    // Distant Binary Sun System (Upper Center)
+    const cx1 = px + pw / 2 - 20, cy1 = py + 46;
+    const cx2 = cx1 + 26, cy2 = cy1 - 8;
+    ctx.fillStyle = C.amber; ctx.beginPath(); ctx.arc(cx1, cy1, 9, 0, 7); ctx.fill();
+    ctx.strokeStyle = C.white; ctx.stroke();
+    ctx.fillStyle = C.cyan; ctx.beginPath(); ctx.arc(cx2, cy2, 6, 0, 7); ctx.fill();
+    ctx.strokeStyle = C.white; ctx.stroke();
+  } else {
+    // Cosmic Nebula Cloud formation
+    const nx = px + pw / 2, ny = py + 52;
+    ctx.fillStyle = 'rgba(155, 81, 224, 0.25)';
+    ctx.beginPath(); ctx.arc(nx - 22, ny + 4, 14, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(nx, ny - 6, 18, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(nx + 20, ny + 2, 12, 0, 7); ctx.fill();
+  }
+
+  // Outer border
+  ctx.strokeStyle = C.cyan; rr(px, py, pw, ph, 4); ctx.stroke();
+}
+
+function renderGames(){
+  const titles=['CYBER ARCADE // SELECT','GAME // CYBER SNAKE','GAME // NEON PONG','GAME // CYBER FLAPPY','GAME // NEON BREAKOUT'];
+  topBar(titles[simGameId]||titles[0], C.green);
+
+  const px=6, py=24, pw=228, ph=250;
+
+  if(simGameId===0){
+    ctx.fillStyle=C.surface; rr(px,py,pw,ph,4); ctx.fill();
+    ctx.strokeStyle=C.cyan; rr(px,py,pw,ph,4); ctx.stroke();
+
+    // Games Menu (4 arcade games)
+    centerText('SELECT MINI-GAME', py+14, C.green, 11);
+    const gNames=[
+      '1. CYBER SNAKE',
+      '2. NEON PONG',
+      '3. CYBER FLAPPY',
+      '4. NEON BREAKOUT'
+    ];
+    const gDescs=[
+      'Retro crawler // Space grid',
+      'Neon duel // AI paddle match',
+      'Thrust flight // Cosmic conduits',
+      'Arcade brick smash // Rebound'
+    ];
+
+    for(let i=0;i<4;i++){
+      const gy=py+36+i*48, sel=(simGameSel===i);
+      ctx.fillStyle=sel?C.panel:C.surface; rr(px+6,gy,pw-12,42,4); ctx.fill();
+      ctx.strokeStyle=sel?C.green:C.dim; rr(px+6,gy,pw-12,42,4); ctx.stroke();
+
+      if(sel){
+        ctx.fillStyle=C.green; rr(px+6,gy+2,4,38,2); ctx.fill();
+        ctx.fillStyle=C.green; F(11); ctx.fillText('> ',px+14,gy+18);
+      }
+      F(11); ctx.fillStyle=sel?C.white:C.cyan; ctx.fillText(gNames[i],px+24,gy+18);
+      F(9); ctx.fillStyle=C.grey; ctx.fillText(gDescs[i],px+24,gy+34);
+    }
+    bottomBar('JOY:Select  CLICK:Play  MENU:Exit');
+    return;
+  }
+
+  const now=Date.now();
+
+  // GAMEPLAY: Draw dynamic randomized space background
+  drawSpaceBackground(px, py, pw, ph, simSpaceSeed, now);
+
+  // Header score
+  F(10); ctx.fillStyle=C.green;
+  ctx.fillText('SCORE: '+String(simGameScore).padStart(4,'0')+'   HIGH: '+String(simHighScore[simGameId]).padStart(4,'0'), px+10, py+14);
+  ctx.strokeStyle=C.dim; ctx.beginPath(); ctx.moveTo(px+2,py+19); ctx.lineTo(px+pw-2,py+19); ctx.stroke();
+
+  if(simGameId===1){
+    // CYBER SNAKE
+    // Food
+    ctx.fillStyle=C.crimson; ctx.beginPath(); ctx.arc(px+6+simFood.x*8+4, py+24+simFood.y*8+4, 3.5, 0, 7); ctx.fill();
+    ctx.strokeStyle=C.white; ctx.stroke();
+
+    // Snake
+    for(let i=0;i<simSnake.length;i++){
+      ctx.fillStyle=(i===0)?C.white:(i%2===0?C.green:C.cyan);
+      ctx.fillRect(px+6+simSnake[i].x*8+1, py+24+simSnake[i].y*8+1, 6, 6);
+    }
+
+    if(simSubState===0 && now-simLastTick>110){
+      simLastTick=now;
+      let hx=simSnake[0].x, hy=simSnake[0].y;
+      if(simSnakeDir===0)hx++; else if(simSnakeDir===1)hy++;
+      else if(simSnakeDir===2)hx--; else if(simSnakeDir===3)hy--;
+
+      if(hx<0||hx>=27||hy<0||hy>=27){
+        simSubState=2; playBuzzer(400, 50);
+        if(simGameScore>simHighScore[1])simHighScore[1]=simGameScore;
+      } else {
+        for(let i=0;i<simSnake.length;i++){
+          if(simSnake[i].x===hx && simSnake[i].y===hy){
+            simSubState=2; playBuzzer(400, 50);
+            if(simGameScore>simHighScore[1])simHighScore[1]=simGameScore;
+            break;
+          }
+        }
+      }
+
+      if(simSubState===0){
+        simSnake.unshift({x:hx,y:hy});
+        if(hx===simFood.x && hy===simFood.y){
+          simGameScore+=10; playBuzzer(2400, 10);
+          simFood={x:Math.floor(Math.random()*25)+1, y:Math.floor(Math.random()*25)+1};
+          if(simGameScore>simHighScore[1])simHighScore[1]=simGameScore;
+        } else {
+          simSnake.pop();
+        }
+      }
+    }
+  } else if(simGameId===2){
+    // NEON PONG
+    const padW=4, padH=34;
+    ctx.fillStyle=C.cyan; rr(px+8, simPongPlayerY, padW, padH, 2); ctx.fill();
+    ctx.fillStyle=C.crimson; rr(px+pw-12, simPongAiY, padW, padH, 2); ctx.fill();
+
+    // Center Net
+    ctx.strokeStyle=C.dim; ctx.lineWidth=1;
+    for(let ny=py+22; ny<py+ph-10; ny+=10){
+      ctx.beginPath(); ctx.moveTo(px+pw/2, ny); ctx.lineTo(px+pw/2, ny+5); ctx.stroke();
+    }
+
+    // Ball
+    ctx.fillStyle=C.white; ctx.beginPath(); ctx.arc(simBallX, simBallY, 3, 0, 7); ctx.fill();
+    ctx.strokeStyle=C.green; ctx.stroke();
+
+    if(simSubState===0 && now-simLastTick>30){
+      simLastTick=now;
+      simBallX+=simBallVx; simBallY+=simBallVy;
+
+      // AI follow
+      if(simBallY > simPongAiY+17 && simPongAiY < 235) simPongAiY+=2.2;
+      else if(simBallY < simPongAiY+17 && simPongAiY > 35) simPongAiY-=2.2;
+
+      // Top / Bottom bounce
+      if(simBallY <= py+24 || simBallY >= py+ph-8){
+        simBallVy=-simBallVy; playBuzzer(1400, 5);
+      }
+
+      // Player bounce
+      if(simBallX <= px+14 && simBallX >= px+6 && simBallY >= simPongPlayerY && simBallY <= simPongPlayerY+padH){
+        simBallVx=Math.abs(simBallVx); simGameScore+=5; playBuzzer(2000, 8);
+        if(simGameScore>simHighScore[2])simHighScore[2]=simGameScore;
+      }
+
+      // AI bounce
+      if(simBallX >= px+pw-14 && simBallX <= px+pw-6 && simBallY >= simPongAiY && simBallY <= simPongAiY+padH){
+        simBallVx=-Math.abs(simBallVx); playBuzzer(1600, 8);
+      }
+
+      // Score / Miss
+      if(simBallX < px+4){
+        simSubState=2; playBuzzer(400, 40);
+      } else if(simBallX > px+pw-2){
+        simGameScore+=20; simBallX=120; simBallY=150; simBallVx=-3; playBuzzer(2600, 15);
+        if(simGameScore>simHighScore[2])simHighScore[2]=simGameScore;
+      }
+    }
+  } else if(simGameId===3){
+    // CYBER FLAPPY (Drone navigating space conduits)
+    const birdX=50, birdY=simFlappyY;
+    const pipeW=20, gapH=68;
+
+    // Glowing drone bird with thruster spark
+    ctx.fillStyle=C.amber; ctx.beginPath(); ctx.arc(birdX, birdY, 5, 0, 7); ctx.fill();
+    ctx.strokeStyle=C.white; ctx.stroke();
+    ctx.strokeStyle=C.cyan; ctx.beginPath(); ctx.moveTo(birdX-8, birdY); ctx.lineTo(birdX-2, birdY); ctx.stroke();
+
+    // Top and bottom pipes
+    if(simPipeX+pipeW>px && simPipeX<px+pw){
+      const topH=simPipeGapY-(py+20);
+      if(topH>0){
+        ctx.fillStyle=C.panel; ctx.fillRect(simPipeX, py+20, pipeW, topH);
+        ctx.strokeStyle=C.green; ctx.strokeRect(simPipeX, py+20, pipeW, topH);
+        ctx.fillStyle=C.green; ctx.fillRect(simPipeX-2, py+20+topH-6, pipeW+4, 6);
+      }
+      const botY=simPipeGapY+gapH;
+      const botH=(py+ph)-botY;
+      if(botH>0){
+        ctx.fillStyle=C.panel; ctx.fillRect(simPipeX, botY, pipeW, botH);
+        ctx.strokeStyle=C.green; ctx.strokeRect(simPipeX, botY, pipeW, botH);
+        ctx.fillStyle=C.green; ctx.fillRect(simPipeX-2, botY, pipeW+4, 6);
+      }
+    }
+
+    if(simSubState===0 && now-simLastTick>30){
+      simLastTick=now;
+      simFlappyVy+=0.35;
+      if(simFlappyVy>6.0) simFlappyVy=6.0;
+      simFlappyY+=simFlappyVy;
+      simPipeX-=3;
+
+      if(simPipeX<-25){
+        simPipeX=230;
+        simPipeGapY=50+Math.floor(Math.random()*100);
+        simGameScore+=10; playBuzzer(2400, 10);
+        if(simGameScore>simHighScore[3])simHighScore[3]=simGameScore;
+      }
+
+      // Collisions
+      if(simFlappyY<=py+22 || simFlappyY>=py+ph-8){
+        simSubState=2; playBuzzer(400, 50);
+        if(simGameScore>simHighScore[3])simHighScore[3]=simGameScore;
+      }
+      if(simFlappyY>py+22 && simFlappyY<py+ph-8){
+        if(birdX+5>=simPipeX && birdX-5<=simPipeX+pipeW){
+          if(simFlappyY-5<simPipeGapY || simFlappyY+5>simPipeGapY+gapH){
+            simSubState=2; playBuzzer(400, 50);
+            if(simGameScore>simHighScore[3])simHighScore[3]=simGameScore;
+          }
+        }
+      }
+    }
+  } else if(simGameId===4){
+    // NEON BREAKOUT (Space brick breaker)
+    const padW=38, padH=5;
+    const padY=py+ph-12;
+
+    // Paddle
+    ctx.fillStyle=C.cyan; rr(simBreakoutPadX, padY, padW, padH, 2); ctx.fill();
+    ctx.strokeStyle=C.white; rr(simBreakoutPadX, padY, padW, padH, 2); ctx.stroke();
+
+    // Ball
+    ctx.fillStyle=C.white; ctx.beginPath(); ctx.arc(simBreakoutBallX, simBreakoutBallY, 3, 0, 7); ctx.fill();
+    ctx.strokeStyle=C.amber; ctx.stroke();
+
+    // Bricks
+    for(let r=0;r<3;r++){
+      for(let c=0;c<8;c++){
+        const bidx=r*8+c;
+        if(simBreakoutBricks[bidx]){
+          const bx=px+12+c*26;
+          const by=py+28+r*14;
+          ctx.fillStyle=(r===0)?C.crimson:(r===1?C.amber:C.green);
+          ctx.fillRect(bx, by, 22, 10);
+          ctx.strokeStyle=C.white; ctx.strokeRect(bx, by, 22, 10);
+        }
+      }
+    }
+
+    if(simSubState===0 && now-simLastTick>25){
+      simLastTick=now;
+      simBreakoutBallX+=simBreakoutBallVx;
+      simBreakoutBallY+=simBreakoutBallVy;
+
+      // Wall bounces
+      if(simBreakoutBallX<=px+8){
+        simBreakoutBallX=px+8; simBreakoutBallVx=Math.abs(simBreakoutBallVx);
+        playBuzzer(1400, 4);
+      } else if(simBreakoutBallX>=px+pw-8){
+        simBreakoutBallX=px+pw-8; simBreakoutBallVx=-Math.abs(simBreakoutBallVx);
+        playBuzzer(1400, 4);
+      }
+
+      if(simBreakoutBallY<=py+20){
+        simBreakoutBallY=py+20; simBreakoutBallVy=Math.abs(simBreakoutBallVy);
+        playBuzzer(1400, 4);
+      }
+
+      // Paddle bounce
+      if(simBreakoutBallY>=padY-4 && simBreakoutBallY<=padY+4 &&
+         simBreakoutBallX>=simBreakoutPadX-4 && simBreakoutBallX<=simBreakoutPadX+padW+4){
+        simBreakoutBallVy=-Math.abs(simBreakoutBallVy);
+        const hitOff=simBreakoutBallX-(simBreakoutPadX+padW/2);
+        if(hitOff<-8) simBreakoutBallVx=-3;
+        else if(hitOff>8) simBreakoutBallVx=3;
+        playBuzzer(1900, 8);
+      }
+
+      // Brick destruction
+      let aliveCount=0;
+      for(let r=0;r<3;r++){
+        for(let c=0;c<8;c++){
+          const bidx=r*8+c;
+          if(simBreakoutBricks[bidx]){
+            aliveCount++;
+            const bx=px+12+c*26;
+            const by=py+28+r*14;
+            if(simBreakoutBallX>=bx-3 && simBreakoutBallX<=bx+25 &&
+               simBreakoutBallY>=by-3 && simBreakoutBallY<=by+13){
+              simBreakoutBricks[bidx]=0;
+              simBreakoutBallVy=-simBreakoutBallVy;
+              simGameScore+=15;
+              playBuzzer(2200, 8);
+              if(simGameScore>simHighScore[4])simHighScore[4]=simGameScore;
+              aliveCount--;
+            }
+          }
+        }
+      }
+
+      if(aliveCount===0){
+        simBreakoutBricks.fill(1);
+        simGameScore+=100;
+        playBuzzer(2700, 20);
+      }
+
+      if(simBreakoutBallY>=py+ph-4){
+        simSubState=2; playBuzzer(400, 50);
+        if(simGameScore>simHighScore[4])simHighScore[4]=simGameScore;
+      }
+    }
+  }
+
+  if(simSubState===2){
+    // Game Over Overlay
+    const gw=160, gh=50, gx=(240-gw)/2, gy=(320-gh)/2;
+    ctx.fillStyle=C.panel; rr(gx,gy,gw,gh,5); ctx.fill();
+    ctx.strokeStyle=C.crimson; rr(gx,gy,gw,gh,5); ctx.stroke();
+    F(10); ctx.fillStyle=C.crimson; ctx.fillText('GAME OVER', gx+46, gy+18);
+    F(9); ctx.fillStyle=C.white; ctx.fillText('CLICK / SNAP: Restart', gx+26, gy+36);
+  }
+
+  bottomBar('JOY:Controls  CLICK:Action  MENU:Exit');
+}
+
+// ---------- FILE EXPLORER ----------
+function feList(){return FS[fePath]||[];}
+function renderFE(){
+  if(feView){topBar('GALLERY // PHOTO',C.cyan);const vy=26,vh=244;ctx.strokeStyle=C.dim;ctx.strokeRect(6,vy,228,vh);
+    const pg=ctx.createLinearGradient(8,vy,8,vy+vh);pg.addColorStop(0,'#1a304a');pg.addColorStop(1,'#0b1624');ctx.fillStyle=pg;ctx.fillRect(8,vy+2,224,vh-4);
+    ctx.fillStyle=C.amber;ctx.beginPath();ctx.arc(120,120,30,0,7);ctx.fill();bottomBar('MENU/LEFT:Back');return;}
+  topBar('FILE EXPLORER',C.cyan);
+  F(9);ctx.fillStyle=C.grey;ctx.fillText('PATH: '+fePath,6,30);
+  const list=feList(),startY=36,rowH=22,VIS=10;
+  if(feSel<feScroll)feScroll=feSel;if(feSel>=feScroll+VIS)feScroll=feSel-VIS+1;
+  if(list.length===0)centerText('[ EMPTY FOLDER ]',150,C.grey,10);
+  for(let r=0;r<VIS;r++){const i=feScroll+r;if(i>=list.length)break;const e=list[i],y=startY+r*rowH,sel=i===feSel,bg=sel?C.surface:C.panel;
+    ctx.fillStyle=bg;ctx.fillRect(6,y,220,rowH-2);if(sel){ctx.strokeStyle=C.green;ctx.strokeRect(6,y,220,rowH-2);}
+    drawIcon(10,y,e.d?'cfg':(e.n.match(/jpg|avi/i)?'cam':e.n.match(/txt/i)?'note':e.n.match(/ir/i)?'ir':e.n.match(/sub/i)?'subghz':e.n.match(/pcap/i)?'radio':'sd'),sel?C.green:C.grey,bg);
+    F(10);ctx.fillStyle=e.d?C.cyan:(sel?C.white:C.grey);ctx.fillText(e.n,36,y+15);
+    if(!e.d){const s=e.sz>1e6?(e.sz/1048576).toFixed(1)+'M':(e.sz/1024).toFixed(1)+'K';ctx.fillStyle=C.amber;ctx.fillText(s,222-ctx.measureText(s).width,y+15);}}
+  const by=286;ctx.fillStyle=C.panel;ctx.fillRect(0,by,240,18);F(9);ctx.fillStyle=C.grey;ctx.fillText('FREE 14820MB / 15200MB',6,by+13);
+  ctx.strokeStyle=C.dim;ctx.strokeRect(170,by+4,60,9);ctx.fillStyle=C.cyan;ctx.fillRect(171,by+5,15,7);
+  bottomBar('CLICK:Open  L:Up  HOLD-S:Rename  SNAP:Del  MENU:Home');
+  if(feConfirm)confirmBox('DELETE FILE',feList()[feSel]?feList()[feSel].n:'',feYes);
+  if(feRenaming)renderNamingDialog('RENAME FILE', feExt);
+}
+
+
+// ---------- NRF ----------
+function renderNrf(){
+  nrfCh=(nrfCh+1)%126;spectrum[nrfCh]=Math.min(100,Math.max(5,spectrum[nrfCh]+(Math.random()*40-20)));
+  topBar('2.4GHz RF ANALYZER',C.amber);
+  ctx.strokeStyle=C.cyan;ctx.strokeRect(4,24,232,108);
+  for(let i=0;i<126;i++){const x=6+i*228/126,h=spectrum[i];ctx.fillStyle=h>75?C.crimson:h>40?C.amber:C.green;ctx.fillRect(x,130-h,2,h);}
+  ctx.strokeStyle=C.dim;ctx.strokeRect(4,136,232,64);
+  waterfall.push(spectrum.slice());if(waterfall.length>60)waterfall.shift();
+  for(let y=0;y<waterfall.length;y++)for(let x=0;x<126;x++){const v=waterfall[y][x];if(v>20){ctx.fillStyle=v>75?C.crimson:v>40?C.amber:C.green;ctx.fillRect(6+x*228/126,138+y,2,1);}}
+  F(10);ctx.fillStyle=C.cyan;ctx.fillText('SWEEP CH '+nrfCh+'  RSSI '+(spectrum[nrfCh]-100|0)+' dBm',8,214);
+  F(9);ctx.fillStyle=C.grey;ctx.fillText('2400 - 2525 MHz | 126 CH',8,228);
+  bottomBar('MENU:Back');
+}
+
+// ---------- WIFI / BLE ----------
+let simWifiSel = 0;
+let simDeauthUntil = 0;
+let simHandshakeUntil = 0;
+let simHandshakeSsid = '';
+
+const apsList = [
+  ['06','-42','HomeNet_5G','WPA2-PSK','E0:55:3D:11:22:33'],
+  ['01','-58','Linksys-Core','WPA3-SAE','44:D9:E7:AA:BB:CC'],
+  ['11','-67','OfficeGuest','WPA2-ENT','00:1A:2B:3C:4D:5E'],
+  ['03','-71','CoffeeShop-Public','OPEN','F8:1A:67:88:99:00'],
+  ['09','-80','ESP32-AP-Sensor','WPA2-PSK','24:6F:28:12:34:56']
+];
+
+function renderWifi(){
+  topBar('WI-FI 802.11 MONITOR',C.green);
+  F(10);ctx.fillStyle=C.cyan;ctx.fillText('CH 6 (hop) | Pkts '+(1200+(Date.now()/50|0)%500),6,36);
+  ctx.fillText('Deauth '+(Date.now()<simDeauthUntil?'BURST!':'12')+'  EAPOL '+(simHandshakeUntil>0?'4 (KEY)':'2')+'  PMKID 1',6,50);
+  ctx.fillText('Beacon 240  Probe 88  Data 503',6,64);
+
+  const atk=['PASSIVE MONITOR','BEACON FLOOD','AUTH CHECK','DEAUTH FLOOD','PROBE AUDIT'];
+  const col=wifiAtk===0?C.green:wifiAtk===3?C.crimson:C.amber;
+  ctx.fillStyle=C.panel;rr(4,72,232,20,3);ctx.fill();ctx.strokeStyle=col;rr(4,72,232,20,3);ctx.stroke();
+  F(9);ctx.fillStyle=col;ctx.fillText('AUDIT: '+atk[wifiAtk]+'  [SEL AP: '+(simWifiSel+1)+'/'+apsList.length+']',8,85);
+
+  ctx.fillStyle=C.amber;F(9);ctx.fillText('SELECT AP TO TARGET (UP/DN + SHUTTER):',6,104);
+  let y=118;
+  for(let i=0;i<apsList.length;i++){
+    const a=apsList[i];
+    const isSel = (i===simWifiSel);
+    if(isSel){
+      ctx.fillStyle='rgba(0,255,200,0.18)';
+      ctx.fillRect(4,y-11,232,15);
+      ctx.strokeStyle=C.cyan;
+      ctx.strokeRect(4,y-11,232,15);
+    }
+    ctx.fillStyle=a[3]==='OPEN'?C.crimson:a[3]==='WPA3-SAE'?C.green:C.cyan;
+    ctx.fillText('['+a[3]+']',6,y);
+    ctx.fillStyle=isSel?C.cyan:C.white;
+    ctx.fillText('CH'+a[0]+' ('+a[1]+'dBm) '+a[2],60,y);
+    y+=16;
+  }
+
+  // Deauth broadcast in progress
+  if(Date.now() < simDeauthUntil){
+    ctx.fillStyle='rgba(255,20,50,0.88)';
+    ctx.fillRect(10,195,220,24);
+    ctx.strokeStyle=C.white;ctx.strokeRect(10,195,220,24);
+    F(10);ctx.fillStyle=C.white;
+    ctx.fillText('>> TX DIRECTED DEAUTH: '+apsList[simWifiSel][2]+' <<',14,211);
+  } else if(Date.now() < simHandshakeUntil){
+    ctx.fillStyle='rgba(0,180,60,0.92)';
+    ctx.fillRect(8,192,224,28);
+    ctx.strokeStyle=C.white;ctx.strokeRect(8,192,224,28);
+    F(9);ctx.fillStyle=C.white;
+    ctx.fillText('! WPA2 HANDSHAKE CAPTURED: '+simHandshakeSsid+' !',12,204);
+    ctx.fillStyle=C.amber;
+    ctx.fillText('SAVED: /HANDSHAKES/'+simHandshakeSsid+'.PCAP',12,216);
+  }
+
+  bottomBar('UP/DN:Sel  SHUTTER:Deauth/Cap  CLICK:Mode');
+}
+
+let simBleSel = 0;
+let simFoxHunting = false;
+let simFoxAngle = 0;
+
+const bleDvList = [
+  ['-42','7C:9A:12','ATM PUMP #04 [SKIMMER!]','SKIMMER'],
+  ['-55','4C:6A:11','AirTag Stalker Tag','AIRTAG'],
+  ['-68','30:AE:A4','flipper-zero-lab','FLIPPER'],
+  ['-74','A4:C3:F0','Galaxy Watch 6','SAMSUNG'],
+  ['-88','00:1A:7D','Surface Mouse','GENERIC']
+];
+
+function renderBle(){
+  if(simFoxHunting){
+    // Render Tactical Fox-Hunt Screen
+    topBar('TACTICAL FOX-HUNT',C.crimson);
+    const target = bleDvList[simBleSel];
+    ctx.fillStyle=C.panel;rr(6,24,228,42,4);ctx.fill();ctx.strokeStyle=C.crimson;rr(6,24,228,42,4);ctx.stroke();
+    F(10);ctx.fillStyle=C.crimson;ctx.fillText('LOCK: '+target[2],12,40);
+    F(9);ctx.fillStyle=C.white;ctx.fillText('MAC: '+target[1]+'  TYPE: ['+target[3]+']',12,56);
+
+    // Radar / Proximity Circular scope
+    const cx=70, cy=135, rad=48;
+    ctx.strokeStyle='#005522';ctx.beginPath();ctx.arc(cx,cy,rad,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.arc(cx,cy,rad*0.66,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.arc(cx,cy,rad*0.33,0,Math.PI*2);ctx.stroke();
+    ctx.moveTo(cx-rad,cy);ctx.lineTo(cx+rad,cy);ctx.moveTo(cx,cy-rad);ctx.lineTo(cx,cy+rad);ctx.stroke();
+
+    simFoxAngle += 0.08;
+    ctx.strokeStyle=C.green;ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+Math.cos(simFoxAngle)*rad, cy+Math.sin(simFoxAngle)*rad);
+    ctx.stroke();
+
+    // Target blip based on RSSI
+    const baseRssi = parseInt(target[0]);
+    const noisyRssi = baseRssi + Math.round((Math.sin(Date.now()/300)*3));
+    const distEst = Math.max(0.4, Math.pow(10, (-59 - noisyRssi) / (10 * 2.0))).toFixed(1);
+
+    // Blip
+    ctx.fillStyle=C.crimson;ctx.beginPath();
+    ctx.arc(cx+12, cy-18, 5, 0, Math.PI*2);ctx.fill();
+    ctx.fillStyle=C.white;ctx.fillText('TARGET',cx+20,cy-14);
+
+    // RSSI Bar Graph
+    ctx.fillStyle=C.panel;rr(140,74,94,116,4);ctx.fill();ctx.strokeStyle=C.dim;rr(140,74,94,116,4);ctx.stroke();
+    F(12);ctx.fillStyle=noisyRssi>-50?C.crimson:noisyRssi>-70?C.amber:C.cyan;
+    ctx.fillText(noisyRssi+' dBm',148,94);
+    F(10);ctx.fillStyle=C.white;ctx.fillText('~'+distEst+' METERS',148,112);
+
+    // Heat meter (12 bars)
+    const norm = Math.max(0, Math.min(12, Math.round((noisyRssi + 95) / 5)));
+    for(let b=0;b<12;b++){
+      ctx.fillStyle = (b < norm) ? (b > 8 ? C.crimson : b > 5 ? C.amber : C.green) : '#222';
+      ctx.fillRect(148 + (b*7), 130, 5, 20);
+    }
+
+    F(9);ctx.fillStyle=C.amber;
+    ctx.fillText('GEIGER: '+(norm*32)+' CPM',148,172);
+
+    bottomBar('SHUTTER:Unlock  MENU:Exit  Geiger:ON');
+    return;
+  }
+
+  topBar('BLE PROXIMITY SCANNER',C.amber);
+  const names=['DISCOVERY SCANNER','APPLE FLOOD TEST','GOOGLE FAST-PAIR','SAMSUNG BUDS','MS SWIFT-PAIR','BEACON REPLAY','ROTATE ALL PRESETS'];
+  const col=bleAtk===0?C.cyan:C.amber;ctx.fillStyle=C.panel;rr(4,25,232,22,3);ctx.fill();ctx.strokeStyle=col;rr(4,25,232,22,3);ctx.stroke();
+  F(10);ctx.fillStyle=col;ctx.fillText('TEST: '+names[bleAtk],8,40);
+  if(bleAtk>0){
+    blePkts+=7;ctx.fillStyle=C.green;ctx.fillText('Transmitted Adv Frames: '+blePkts,8,66);
+    bottomBar('CLICK:Mode LEFT:Wi-Fi MENU:Exit');
+    return;
+  }
+
+  ctx.fillStyle=C.cyan;F(9);ctx.fillText('DISCOVERED NODES & HARDWARE THREATS:',6,62);
+  let y=78;
+  for(let i=0;i<bleDvList.length;i++){
+    const d=bleDvList[i];
+    const isSel=(i===simBleSel);
+    if(isSel){
+      ctx.fillStyle='rgba(255,200,0,0.18)';
+      ctx.fillRect(4,y-11,232,15);
+      ctx.strokeStyle=C.amber;
+      ctx.strokeRect(4,y-11,232,15);
+    }
+    // Tag Badge
+    if(d[3]==='SKIMMER'){
+      ctx.fillStyle=C.crimson;ctx.fillText('[SKIMMER!]',6,y);
+    } else if(d[3]==='AIRTAG'){
+      ctx.fillStyle=C.amber;ctx.fillText('[AIRTAG]',6,y);
+    } else if(d[3]==='FLIPPER'){
+      ctx.fillStyle=C.cyan;ctx.fillText('[FLIPPER]',6,y);
+    } else {
+      ctx.fillStyle=C.grey;ctx.fillText('['+d[3]+']',6,y);
+    }
+    ctx.fillStyle=isSel?C.amber:C.white;
+    ctx.fillText(d[0]+'dBm '+d[1]+' '+d[2],66,y);
+    y+=15;
+  }
+
+  bottomBar('UP/DN:Sel  SHUTTER:FoxHunt  CLICK:Mode');
+}
+
+// ---------- SUBGHZ / IR ----------
+function renderSub(){
+  topBar('SUB-GHZ 433MHz ENGINE',C.amber);
+  F(9);ctx.fillStyle=C.cyan;ctx.fillText('RX:GPIO44  TX:GPIO43  ASK/OOK',8,32);
+  ctx.fillStyle=C.white;ctx.fillText('SHUTTER: Capture raw pulse train',8,46);ctx.fillText('CLICK  : Replay recorded signal',8,58);ctx.fillText('RIGHT  : Synthesize EV1527 code',8,70);
+  ctx.strokeStyle=C.cyan;ctx.strokeRect(4,84,232,150);F(9);ctx.fillStyle=C.cyan;ctx.fillText('TIMING WAVEFORM MONITOR:',8,96);
+  if(sgHasCap){ctx.strokeStyle=C.green;ctx.beginPath();let x=8,lv=false;const pw=[12,6,18,6,12,18,6,12,6,18,18,6,12,6,18,6,12,18,6,12];
+    for(const w of pw){const y=lv?110:168;ctx.lineTo(x,y);x+=w;ctx.lineTo(x,y);lv=!lv;}ctx.stroke();
+    F(9);ctx.fillStyle=C.green;ctx.fillText('Samples: 40 @ 433.92 MHz',8,185);}
+  else{F(9);ctx.fillStyle=C.grey;ctx.fillText('No pulse train captured.',14,150);ctx.fillText('Hold 433MHz transmitter near',14,164);ctx.fillText('the antenna and press SHUTTER.',14,178);}
+  if(sgStatus){F(9);ctx.fillStyle=sgColor;ctx.fillText(sgStatus,8,244);}
+  bottomBar('SNAP:Capture RIGHT:Synth CLICK:Tx MENU:Exit');
+}
+function renderIr(){
+  topBar('INFRARED TRANSCEIVER',C.cyan);
+  F(9);ctx.fillStyle=C.cyan;ctx.fillText('TSOP RX GPIO45 | 940nm TX GPIO44',8,32);
+  if(irHas){ctx.fillStyle=C.green;ctx.fillText('Protocol: SONY',8,52);ctx.fillText('Bits    : 12',8,66);ctx.fillText('Value   : 0xA90',8,80);ctx.fillText('Raw Len : 26',8,94);
+    ctx.fillStyle=C.cyan;ctx.fillText('CLICK to transmit this code.',8,114);}
+  else{ctx.fillStyle=C.white;ctx.fillText('- Point remote at TSOP to learn.',8,54);ctx.fillText('- SHUTTER: Transmit power codes.',8,68);ctx.fillText('- CLICK: Retransmit stored code.',8,82);}
+  bottomBar('SNAP:Power-Codes CLICK:Replay MENU:Exit');
+}
+
+// ---------- SETTINGS (Black & White Theme) ----------
+function renderSettings(){
+  const items=buildSettings();
+  topBar('SYSTEM SETTINGS', C.bwWhite);
+  const startY=26, rowH=24;
+  if(setSel<setScroll)setScroll=setSel;if(setSel>=setScroll+SET_VISIBLE)setScroll=setSel-SET_VISIBLE+1;
+  if(setScroll<0)setScroll=0;if(setScroll>items.length-SET_VISIBLE)setScroll=items.length-SET_VISIBLE;
+
+  for(let r=0; r<SET_VISIBLE; r++){
+    const i=setScroll+r; if(i>=items.length) break;
+    const it=items[i], y=startY+r*rowH;
+    if(it.h){
+      F(10); ctx.fillStyle=C.bwWhite; ctx.fillText(it.n,10,y+16);
+      ctx.fillStyle=C.bwBorder; ctx.fillRect(10,y+20,220,1);
+      continue;
+    }
+    const sel=i===setSel;
+    const bg=sel?C.bwCardSel:C.bwSurface;
+    ctx.fillStyle=bg; rr(6,y,218,rowH-2,4); ctx.fill();
+    ctx.strokeStyle=sel?C.bwWhite:C.bwBorder; rr(6,y,218,rowH-2,4); ctx.stroke();
+    if(sel){
+      ctx.fillStyle=C.bwWhite; rr(6,y+2,4,rowH-6,2); ctx.fill();
+    }
+    F(10); ctx.fillStyle=sel?C.bwWhite:C.bwSilver; ctx.fillText(it.n,14,y+15);
+    ctx.fillStyle=sel?C.bwWhite:C.bwMuted;
+    const vw=ctx.measureText(it.v).width; ctx.fillText(it.v,218-vw,y+15);
+  }
+  if(items.length>SET_VISIBLE){
+    ctx.fillStyle=C.bwBorder; ctx.fillRect(235,startY,1,SET_VISIBLE*rowH);
+    const th=SET_VISIBLE*rowH*SET_VISIBLE/items.length, ty=startY+(SET_VISIBLE*rowH-th)*setScroll/(items.length-SET_VISIBLE);
+    ctx.fillStyle=C.bwWhite; ctx.fillRect(234,ty,3,th);
+  }
+  bottomBar('U/D:Nav L/R:Adjust CLICK:Action MENU:Save');
+  if(setConfirm)confirmBox('ERASE CAPTURES','Delete all media & logs?',setYes);
+}
+
+
+// ---------- ABOUT ----------
+function renderAbout(){
+  topBar('ABOUT // SYSTEM',C.cyan);
+  const L=[['#FIRMWARE'],['AxionTool v2.5.0'],['Build: ESP32-S3 N16R8'],
+    ['#HARDWARE'],['SoC: ESP32-S3 @ 240MHz'],['Flash: 16MB'],['PSRAM: 7100/8192KB free'],['Heap: 280KB free'],
+    ['#STORAGE & POWER'],['SD: SDHC 15200MB'],['Battery: 4.12V (96%)'],['Uptime: 00:03:21']];
+  let y=36;for(const l of L){if(l[0][0]==='#'){F(10);ctx.fillStyle=C.amber;ctx.fillText(l[0].slice(1),8,y);ctx.fillStyle=C.dim;ctx.fillRect(8,y+6,224,1);y+=18;}
+    else{F(10);ctx.fillStyle=C.white;ctx.fillText(l[0],12,y);y+=15;}}
+  ctx.fillStyle=C.grey;ctx.fillText('SD STORAGE',8,286);ctx.strokeStyle=C.dim;ctx.strokeRect(8,296,224,12);ctx.fillStyle=C.green;ctx.fillRect(9,297,20,10);
+  bottomBar('MENU/CLICK:Back');
+}
+
+// ---------- DEVICE FEATURE GUIDE & USER MANUAL ----------
+let guidePage = 0;
+const GUIDE_DOCS = [
+  {
+    cat: 'CAMERA & VIDEO',
+    col: C.cyan,
+    desc1: 'Live 20+ FPS preview with hardware JPEG',
+    desc2: 'OV3660 sensor supporting up to 3MP stills.',
+    ctrls: [
+      'SHUTTER: Quick click saves full JPEG photo',
+      'SHUTTER HOLD: Record AVI video to SD card',
+      'UP / DOWN: Digital zoom & crop control',
+      'CLICK (CENTER): Toggle quick settings menu',
+      'MENU / BACK: Return to Main Menu'
+    ],
+    notes: [
+      'Files save automatically to /DCIM on SD',
+      'Quick menu adjusts scene, exposure & white bal',
+      'Instant preview freeze confirms successful capture',
+      'Fast 1-bit native SDMMC write pipeline'
+    ]
+  },
+  {
+    cat: 'GALLERY & MEDIA',
+    col: C.white,
+    desc1: 'Playback photos and recorded video files directly',
+    desc2: 'from the SD card /DCIM directory.',
+    ctrls: [
+      'UP / DOWN: Scroll through captured media',
+      'LEFT / RIGHT: Previous or next photo',
+      'CLICK: Play / Pause recorded AVI video',
+      'CLICK HOLD: Delete selected media file',
+      'MENU / BACK: Exit gallery'
+    ],
+    notes: [
+      'Video plays back at smooth recorded FPS',
+      'Full JPEG decode with hardware color scaling',
+      'Delete feature includes confirmation guard',
+      'File counter indicates position and total'
+    ]
+  },
+  {
+    cat: 'SD FILE EXPLORER',
+    col: C.green,
+    desc1: 'Hierarchical file browser for navigating folders,',
+    desc2: 'inspecting file sizes and managing files.',
+    ctrls: [
+      'UP / DOWN: Navigate file and directory list',
+      'CLICK: Open file or enter directory',
+      'LEFT: Navigate up to parent folder',
+      'CLICK HOLD: Delete currently highlighted file',
+      'MENU / BACK: Return to main menu'
+    ],
+    notes: [
+      'Supports FAT32 and exFAT formatted cards',
+      'Real-time free space bar shown at bottom',
+      'Auto-detects images, logs, captures and audio',
+      'Safe directory recursion prevents stack overflow'
+    ]
+  },
+  {
+    cat: '2.4GHz RF ANALYZER',
+    col: C.amber,
+    desc1: 'Sweeps 126 channels in the 2.4GHz spectrum using',
+    desc2: 'an onboard or external NRF transceiver.',
+    ctrls: [
+      'UP / DOWN: Adjust vertical peak scale',
+      'LEFT / RIGHT: Select active frequency channel',
+      'CLICK: Toggle peak hold and live waterfall',
+      'SHUTTER: Reset spectrum sweep history',
+      'MENU / BACK: Exit RF analyzer'
+    ],
+    notes: [
+      'Displays 2400MHz to 2525MHz channels 0-125',
+      'Real-time waterfall scroll reveals signal duty',
+      'Detects Wi-Fi, BLE, and proprietary transmitters',
+      'High sweep rate with low-latency SPI bus'
+    ]
+  },
+  {
+    cat: 'WI-FI 802.11 MONITOR',
+    col: C.green,
+    desc1: 'Promiscuous packet sniffer, frame analyzer and',
+    desc2: 'network encryption detection utility.',
+    ctrls: [
+      'UP / DOWN: Select network or channel',
+      'CLICK: Toggle packet capture to PCAP on SD',
+      'LEFT / RIGHT: Step channel hop delay',
+      'SHUTTER: Trigger beacon or deauth transmission',
+      'MENU / BACK: Exit Wi-Fi monitor'
+    ],
+    notes: [
+      'Real-time beacon, data, deauth packet counts',
+      'Parses RSN/WPA IEs for WPA, WPA2, WPA3, Open',
+      'PCAP files can be opened in Wireshark',
+      'Uses ESP32-S3 Core 0 for background RX'
+    ]
+  },
+  {
+    cat: 'BLE SCANNER',
+    col: C.crimson,
+    desc1: 'Bluetooth Low Energy discovery instrument with',
+    desc2: 'Manufacturer ID and company resolution.',
+    ctrls: [
+      'UP / DOWN: Scroll through discovered devices',
+      'CLICK: View detailed manufacturer advertisement',
+      'SHUTTER: Toggle proximity beacon test',
+      'LEFT / RIGHT: Filter by RSSI signal strength',
+      'MENU / BACK: Exit BLE scanner'
+    ],
+    notes: [
+      'Identifies Apple, Google, Samsung, Microsoft',
+      'Parses RSSI, MAC address and Service UUIDs',
+      'Logs discovered devices to /LOGS on SD card',
+      'Low-power background scanning engine'
+    ]
+  },
+  {
+    cat: 'SUB-GHZ 433MHz',
+    col: C.amber,
+    desc1: 'Raw pulse analyzer for 433.92MHz ASK/OOK signals',
+    desc2: 'with pulse duration and code decoding.',
+    ctrls: [
+      'CLICK: Start listening / freeze pulse buffer',
+      'SHUTTER: Transmit / replay recorded pulse train',
+      'UP / DOWN: Zoom timing waveform display',
+      'LEFT / RIGHT: Scroll captured pulse buffer',
+      'MENU / BACK: Exit Sub-GHz engine'
+    ],
+    notes: [
+      'Decodes EV1527, PT2262, and fixed remote codes',
+      'Stores raw timing samples for exact replay',
+      'Hardware pin switching safely isolates buzzer',
+      'High resolution microsecond pulse measurement'
+    ]
+  },
+  {
+    cat: 'INFRARED ENGINE',
+    col: C.cyan,
+    desc1: '38kHz TSOP receiver and 940nm blaster for learning',
+    desc2: 'and testing infrared remote control protocols.',
+    ctrls: [
+      'CLICK: Arm TSOP receiver for signal learning',
+      'SHUTTER: Transmit selected infrared code',
+      'UP / DOWN: Select protocol or stored preset',
+      'LEFT / RIGHT: Select device brand (TV/Audio)',
+      'MENU / BACK: Exit infrared engine'
+    ],
+    notes: [
+      'Decodes NEC, Sony, RC5, and raw pulse trains',
+      'Preloaded with universal power code library',
+      'High-drive 940nm LED emitter output',
+      'Saves captured codes to SD for later replay'
+    ]
+  },
+  {
+    cat: 'SYSTEM & SETTINGS',
+    col: C.white,
+    desc1: 'Global configuration for display brightness, audio',
+    desc2: 'feedback, camera tuning and SD diagnostics.',
+    ctrls: [
+      'UP / DOWN: Navigate settings list',
+      'LEFT / RIGHT: Adjust values or toggle options',
+      'CLICK: Execute action items (Benchmark, Reset)',
+      'SHUTTER: Save settings immediately to SD',
+      'MENU / BACK: Save configuration and exit'
+    ],
+    notes: [
+      'Settings persist automatically to config file',
+      'SD Benchmark tests raw card write bandwidth',
+      'Camera options tune ISO, EV, WB, and grid',
+      'Battery meter tracks real cell voltage'
+    ]
+  }
+];
+
+function renderGuide(){
+  const p = GUIDE_DOCS[guidePage];
+  topBar(`GUIDE [${guidePage+1}/${GUIDE_DOCS.length}] ${p.cat}`, p.col);
+
+  let y = 26;
+
+  // Overview Box
+  ctx.fillStyle = C.panel; rr(6, y, 228, 48, 4); ctx.fill();
+  ctx.strokeStyle = p.col; rr(6, y, 228, 48, 4); ctx.stroke();
+  F(10); ctx.fillStyle = p.col; ctx.fillText('FUNCTION OVERVIEW', 12, y + 14);
+  F(9); ctx.fillStyle = C.white;
+  ctx.fillText(p.desc1, 12, y + 28);
+  ctx.fillText(p.desc2, 12, y + 41);
+  y += 54;
+
+  // Controls Box
+  ctx.fillStyle = C.surface; rr(6, y, 228, 102, 4); ctx.fill();
+  ctx.strokeStyle = C.dim; rr(6, y, 228, 102, 4); ctx.stroke();
+  F(10); ctx.fillStyle = C.amber; ctx.fillText('OPERATING CONTROLS', 12, y + 14);
+  ctx.fillStyle = C.dim; ctx.fillRect(12, y + 18, 216, 1);
+
+  let cy = y + 32;
+  F(9);
+  for(let i = 0; i < p.ctrls.length; i++) {
+    const colon = p.ctrls[i].indexOf(':');
+    if (colon > 0) {
+      const key = p.ctrls[i].slice(0, colon);
+      const val = p.ctrls[i].slice(colon);
+      ctx.fillStyle = C.cyan; ctx.fillText(key, 12, cy);
+      const kw = ctx.measureText(key).width;
+      ctx.fillStyle = C.white; ctx.fillText(val, 12 + kw, cy);
+    } else {
+      ctx.fillStyle = C.white; ctx.fillText(p.ctrls[i], 12, cy);
+    }
+    cy += 14;
+  }
+  y += 108;
+
+  // Operational Notes Box
+  ctx.fillStyle = C.panel; rr(6, y, 228, 82, 4); ctx.fill();
+  ctx.strokeStyle = C.dim; rr(6, y, 228, 82, 4); ctx.stroke();
+  F(10); ctx.fillStyle = C.green; ctx.fillText('OPERATIONAL DETAILS & HARDWARE', 12, y + 14);
+  ctx.fillStyle = C.dim; ctx.fillRect(12, y + 18, 216, 1);
+
+  let ny = y + 32;
+  F(9);
+  for(let i = 0; i < p.notes.length; i++) {
+    ctx.fillStyle = C.green; ctx.beginPath(); ctx.arc(15, ny - 3, 2, 0, 7); ctx.fill();
+    ctx.fillStyle = C.white; ctx.fillText(p.notes[i], 22, ny);
+    ny += 13;
+  }
+
+  bottomBar('< PREV  [CLICK:Next]  NEXT >  MENU:Exit');
+}
+
+// ---------- confirm ----------
+function confirmBox(title,msg,yes){
+  const w=200,h=90,x=20,y=115;ctx.fillStyle=C.panel;rr(x,y,w,h,6);ctx.fill();ctx.strokeStyle=C.crimson;rr(x,y,w,h,6);ctx.stroke();
+  F(10);ctx.fillStyle=C.crimson;ctx.fillText(title,x+10,y+20);ctx.fillStyle=C.white;ctx.fillText(msg,x+10,y+40);
+  const bw=70,bh=24,by=y+h-32;ctx.fillStyle=yes?C.surface:C.green;rr(x+14,by,bw,bh,4);ctx.fill();ctx.fillStyle=yes?C.grey:C.bg;ctx.fillText('NO',x+40,by+16);
+  ctx.fillStyle=yes?C.crimson:C.surface;rr(x+w-14-bw,by,bw,bh,4);ctx.fill();ctx.fillStyle=yes?C.white:C.grey;ctx.fillText('YES',x+w-14-bw+22,by+16);
+}
+
+// ---------- loop ----------
+function render(ts){
+  ctx.fillStyle=C.bg;ctx.fillRect(0,0,240,320);
+  if(mode==='BOOT')renderBoot(ts);
+  else if(mode==='MENU')renderMenu();
+  else if(mode==='CAMERA')renderCamera();
+  else if(mode==='GALLERY')renderGallery();
+  else if(mode==='NOTEPAD')renderNotepad();
+  else if(mode==='GAMES')renderGames();
+  else if(mode==='FILES')renderFE();
+  else if(mode==='NRF')renderNrf();
+  else if(mode==='WIFI')renderWifi();
+  else if(mode==='BLE')renderBle();
+  else if(mode==='SUBGHZ')renderSub();
+  else if(mode==='IR')renderIr();
+  else if(mode==='GUIDE')renderGuide();
+  else if(mode==='SETTINGS')renderSettings();
+  else if(mode==='ABOUT')renderAbout();
+  if(mode!=='CAMERA'&&mode!=='BOOT')applyBrightness();
+  requestAnimationFrame(render);
+}
+
+// ---------- input ----------
+const settingAdjust={bright:[10,10,100],stillQ:[1,4,20],cbri:[1,-2,2],ccon:[1,-2,2],csat:[1,-2,2],csharp:[1,-3,3],cden:[1,0,8],cev:[1,-2,2],hop:[1,1,10]};
+const settingCycle={scene:5,stillRes:4,cgain:7,cwb:5,grid:4};
+function settableItems(){return buildSettings().map((it,i)=>({it,i})).filter(x=>!x.it.h);}
+function handleInput(b){
+  if(mode==='BOOT')return;
+  if(mode==='MENU'){
+    if(b==='UP')menuSel=(menuSel-1+MENU.length)%MENU.length;
+    if(b==='DOWN')menuSel=(menuSel+1)%MENU.length;
+    if(b==='CLICK'||b==='SHUTTER'){
+      mode=['CAMERA','GALLERY','FILES','NOTEPAD','GAMES','NRF','WIFI','BLE','SUBGHZ','IR','GUIDE','SETTINGS'][menuSel];
+      if(mode==='FILES'){fePath='/';feSel=0;feView=false;}
+      if(mode==='GUIDE'){guidePage=0;}
+      if(mode==='NOTEPAD'){
+        noteContent = "";
+        noteName = "note_" + String(noteFileCount).padStart(3, '0');
+        noteNamingStep = false;
+        noteKbdRow = 0;
+        noteKbdCol = 0;
+        noteToastUntil = 0;
+        noteIsDirty = false;
+        noteExitPrompt = false;
+        noteExitChoice = 0;
+      }
+      if(mode==='GAMES'){simGameId=0;simSubState=0;}
+    }
+    return;
+  }
+
+  if(mode==='CAMERA'){
+    if(simNamingActive){
+      if(b==='MENU'){simNamingActive=false;return;}
+      if(b==='UP'){
+        if(simKbdRow===-1)simKbdRow=3;
+        else if(simKbdRow===0){simKbdRow=-1;simKbdCol=simKbdCol>=5?1:0;}
+        else simKbdRow--;
+      }
+      if(b==='DOWN'){
+        if(simKbdRow===-1){simKbdRow=0;simKbdCol=simKbdCol===1?8:4;}
+        else if(simKbdRow===3){simKbdRow=-1;simKbdCol=simKbdCol>=5?1:0;}
+        else simKbdRow++;
+      }
+      if(b==='LEFT'){
+        if(simKbdRow===-1)simKbdCol=simKbdCol===1?0:1;
+        else simKbdCol=(simKbdCol-1+10)%10;
+      }
+      if(b==='RIGHT'){
+        if(simKbdRow===-1)simKbdCol=simKbdCol===0?1:0;
+        else simKbdCol=(simKbdCol+1)%10;
+      }
+
+      if(b==='CLICK'){
+        if(simKbdRow===-1&&simKbdCol===0){
+          // DEL
+          if(simNamingBuffer.length>0)simNamingBuffer=simNamingBuffer.slice(0,-1);
+        } else if(simKbdRow===-1&&simKbdCol===1){
+          // SAVE
+          if(!simNamingBuffer)simNamingBuffer=settings.imgPrefix;
+          savedFileName=simNamingBuffer+'.JPG';
+          settings.imgIndex++;
+          media.push({v:false});
+          freezeUntil=Date.now()+800;
+          simNamingActive=false;
+          playBuzzer(2400, 30);
+        } else if(simKbdRow>=0&&simKbdRow<4&&simKbdCol>=0&&simKbdCol<10){
+          if(simNamingBuffer.length<24){
+            simNamingBuffer+=simKbdRows[simKbdRow][simKbdCol];
+            playBuzzer(1900, 6);
+          }
+        }
+      } else if(b==='SHUTTER'){
+        // Instant save with current buffer
+        if(!simNamingBuffer)simNamingBuffer=settings.imgPrefix;
+        savedFileName=simNamingBuffer+'.JPG';
+        settings.imgIndex++;
+        media.push({v:false});
+        freezeUntil=Date.now()+800;
+        simNamingActive=false;
+        playBuzzer(2400, 30);
+      }
+      return;
+    }
+
+    if(b==='MENU'){if(quickSel>=0){quickSel=-1;return;}mode='MENU';return;}
+    if(quickSel>=0){
+      if(b==='UP')quickSel=(quickSel-1+quickItems.length)%quickItems.length;
+      if(b==='DOWN')quickSel=(quickSel+1)%quickItems.length;
+      if(b==='LEFT'||b==='RIGHT'||b==='CLICK'){const d=b==='LEFT'?-1:1;
+        playBuzzer(1700, 8);
+        switch(quickSel){case 0:camScene=(camScene+1)%5;break;case 1:camStillRes=(camStillRes+1)%4;break;
+          case 2:camFx=(camFx+d+8)%8;break;case 3:camWb=(camWb+1)%5;break;case 4:camBright=Math.max(-2,Math.min(2,camBright+d));break;
+          case 5:camEV=Math.max(-2,Math.min(2,camEV+d));break;case 6:camGrid=(camGrid+1)%4;break;case 7:camZoom=Math.max(1,Math.min(3,camZoom+d*0.5));break;
+          case 8:camFlip=!camFlip;break;case 9:camMirror=!camMirror;break;case 10:quickSel=-1;freezeUntil=Date.now()+600;break;
+          case 11:camTimelapse=!camTimelapse;quickSel=-1;break;case 12:quickSel=-1;break;}}
+    } else {
+      if(b==='CLICK'){quickSel=0;playBuzzer(1600,10);return;}
+      if(b==='LEFT')camFx=(camFx-1+8)%8;if(b==='RIGHT')camScene=(camScene+1)%5;
+      if(b==='UP')camEV=Math.min(2,camEV+1);if(b==='DOWN')camEV=Math.max(-2,camEV-1);
+      if(b==='SHUTTER'){
+        if(camRec){
+          camRec=false;
+          camRecAnim=Date.now()+400;camRecAnimType='stop';
+          playBuzzer(1000, 30);
+        }
+        else{
+          if(settings.promptNaming){
+            simNamingActive=true;
+            if(settings.imgIndex===1)simNamingBuffer=settings.imgPrefix;
+            else simNamingBuffer=settings.imgPrefix+settings.imgIndex;
+            simKbdRow=-1;simKbdCol=1; // Focus on top SAVE button
+            playBuzzer(2000, 15);
+          } else {
+            savedFileName=(settings.imgIndex===1?settings.imgPrefix:settings.imgPrefix+settings.imgIndex)+'.JPG';
+            settings.imgIndex++;
+            freezeUntil=Date.now()+800;
+            media.push({v:false});
+            playBuzzer(2400, 25);
+          }
+        }
+      }
+      if(b==='HOLD'){
+        camRec=!camRec;
+        if(camRec){camRecStart=Date.now();camRecAnim=Date.now()+400;camRecAnimType='start';playBuzzer(2000, 40);}
+        else{camRecAnim=Date.now()+400;camRecAnimType='stop';playBuzzer(1000, 30);}
+      }
+    }
+    return;
+  }
+  if(mode==='GALLERY'){
+    if(vidOpen){if(b==='MENU'){vidOpen=false;}if(b==='CLICK')vidPlaying=!vidPlaying;if(b==='LEFT')vidFrame=0;if(b==='RIGHT')vidFrame+=10;return;}
+    if(b==='MENU')mode='MENU';
+    if(b==='LEFT')galIdx=(galIdx-1+media.length)%media.length;
+    if(b==='RIGHT')galIdx=(galIdx+1)%media.length;
+    if(b==='CLICK'){if(media[galIdx]&&media[galIdx].v){vidOpen=true;vidPlaying=true;vidFrame=0;}
+      else if(media.length>1){media.splice(galIdx,1);if(galIdx>=media.length)galIdx=media.length-1;}}
+    return;
+  }
+  if(mode==='NOTEPAD'){
+    // Modal Exit Confirmation Handling (SAVE vs DISCARD)
+    if(noteExitPrompt){
+      if(b==='MENU'){
+        noteExitPrompt = false;
+        playBuzzer(1200, 8);
+        return;
+      }
+      if(b==='LEFT'){
+        noteExitChoice = 0;
+        playBuzzer(1400, 4);
+      } else if(b==='RIGHT'){
+        noteExitChoice = 1;
+        playBuzzer(1400, 4);
+      } else if(b==='UP' || b==='DOWN'){
+        noteExitChoice = 1 - noteExitChoice;
+        playBuzzer(1400, 4);
+      } else if(b==='CLICK' || b==='SHUTTER'){
+        if(noteExitChoice === 0){
+          // SAVE & EXIT: commit to SD card, chirp, wipe buffer, and exit
+          if(!noteName) noteName = "note_" + String(noteFileCount).padStart(3, '0');
+          const fn = noteName + '.TXT';
+          if(!FS['/NOTEPAD']) FS['/NOTEPAD'] = [];
+          const existing = FS['/NOTEPAD'].find(x => x.n === fn);
+          if(existing){ existing.sz = noteContent.length; }
+          else { FS['/NOTEPAD'].push({ n: fn, d: false, sz: noteContent.length }); }
+          noteFileCount++;
+          noteIsDirty = false;
+          noteExitPrompt = false;
+          noteContent = "";
+          playBuzzer(2600, 25);
+          mode = 'MENU';
+        } else {
+          // DISCARD & EXIT: discard changes without saving, wipe buffer, warn tone, and exit
+          noteIsDirty = false;
+          noteExitPrompt = false;
+          noteContent = "";
+          playBuzzer(800, 30);
+          mode = 'MENU';
+        }
+      }
+      return;
+    }
+
+    if(b==='MENU'){
+      if(noteNamingStep){
+        noteNamingStep=false;
+        noteKbdRow=-1; noteKbdCol=4;
+        playBuzzer(1000, 10);
+        return;
+      }
+      // Check if anything is written and note has unsaved changes
+      if(noteIsDirty && noteContent.length > 0){
+        noteExitPrompt = true;
+        noteExitChoice = 0; // Default to SAVE & EXIT for data safety
+        playBuzzer(2000, 15);
+        return;
+      }
+      mode='MENU';
+      return;
+    }
+    if(b==='UP'){
+      if(noteKbdRow===-1){
+        noteKbdRow=3;
+        noteKbdCol=(noteKbdCol*2 < 10) ? noteKbdCol*2 : 9;
+      } else if(noteKbdRow===0){
+        noteKbdRow=-1;
+        noteKbdCol=(noteKbdCol < 2) ? 0 : (noteKbdCol < 4 ? 1 : (noteKbdCol < 6 ? 2 : (noteKbdCol < 8 ? 3 : 4)));
+      } else {
+        noteKbdRow--;
+      }
+      playBuzzer(1400, 4);
+    } else if(b==='DOWN'){
+      if(noteKbdRow===-1){
+        noteKbdRow=0;
+        noteKbdCol=(noteKbdCol*2 < 10) ? noteKbdCol*2 : 9;
+      } else if(noteKbdRow===3){
+        noteKbdRow=-1;
+        noteKbdCol=(noteKbdCol < 2) ? 0 : (noteKbdCol < 4 ? 1 : (noteKbdCol < 6 ? 2 : (noteKbdCol < 8 ? 3 : 4)));
+      } else {
+        noteKbdRow++;
+      }
+      playBuzzer(1400, 4);
+    } else if(b==='LEFT'){
+      if(noteKbdRow===-1) noteKbdCol=(noteKbdCol - 1 + 5) % 5;
+      else noteKbdCol=(noteKbdCol - 1 + 10) % 10;
+      playBuzzer(1400, 4);
+    } else if(b==='RIGHT'){
+      if(noteKbdRow===-1) noteKbdCol=(noteKbdCol + 1) % 5;
+      else noteKbdCol=(noteKbdCol + 1) % 10;
+      playBuzzer(1400, 4);
+    }
+
+    if(b==='CLICK'){
+      if(noteKbdRow===-1){
+        // Action Bar: 0:DEL, 1:SPACE, 2:ENTER, 3:NEW, 4:SAVE
+        if(noteKbdCol===0){
+          // DEL
+          if(noteContent.length>0){
+            noteContent=noteContent.slice(0, -1);
+            noteIsDirty = true;
+            playBuzzer(1200, 8);
+          }
+        } else if(noteKbdCol===1){
+          // SPACE
+          if(noteContent.length<480){
+            noteContent += ' ';
+            noteIsDirty = true;
+            playBuzzer(1700, 6);
+          }
+        } else if(noteKbdCol===2){
+          // ENTER
+          if(noteContent.length<480){
+            noteContent += '\n';
+            noteIsDirty = true;
+            playBuzzer(1500, 8);
+          }
+        } else if(noteKbdCol===3){
+          // NEW (Wipe and start fresh clean file)
+          noteFileCount++;
+          noteContent = "";
+          noteName = "note_" + String(noteFileCount).padStart(3, '0');
+          noteNamingStep = false;
+          noteKbdRow = 0;
+          noteKbdCol = 0;
+          noteToastUntil = 0;
+          noteIsDirty = false;
+          playBuzzer(1000, 20);
+        } else if(noteKbdCol===4){
+          // SAVE
+          if(!noteName) noteName = "note_" + String(noteFileCount).padStart(3, '0');
+          const fn = noteName + '.TXT';
+          if(!FS['/NOTEPAD']) FS['/NOTEPAD'] = [];
+          const existing = FS['/NOTEPAD'].find(x => x.n === fn);
+          if(existing){ existing.sz = noteContent.length; }
+          else { FS['/NOTEPAD'].push({ n: fn, d: false, sz: noteContent.length }); }
+          noteFileCount++;
+          noteToastUntil = Date.now() + 2500;
+          noteIsDirty = false;
+          playBuzzer(2600, 25);
+        }
+      } else if(noteKbdRow>=0 && noteKbdRow<4 && noteKbdCol>=0 && noteKbdCol<10){
+        const kbdMatrix = [
+          "1234567890",
+          "QWERTYUIOP",
+          "ASDFGHJKL-",
+          "ZXCVBNM.,/"
+        ];
+        const ch = kbdMatrix[noteKbdRow][noteKbdCol];
+        if(noteContent.length<480){
+          noteContent += ch;
+          noteIsDirty = true;
+          playBuzzer(1900, 6);
+        }
+      }
+    } else if(b==='SHUTTER'){
+      // Fast instant save shortcut
+      if(!noteName) noteName = "note_" + String(noteFileCount).padStart(3, '0');
+      const fn = noteName + '.TXT';
+      if(!FS['/NOTEPAD']) FS['/NOTEPAD'] = [];
+      const existing = FS['/NOTEPAD'].find(x => x.n === fn);
+      if(existing){ existing.sz = noteContent.length; }
+      else { FS['/NOTEPAD'].push({ n: fn, d: false, sz: noteContent.length }); }
+      noteFileCount++;
+      noteToastUntil = Date.now() + 2500;
+      noteIsDirty = false;
+      playBuzzer(2600, 25);
+    }
+    return;
+  }
+  if(mode==='GAMES'){
+    if(b==='MENU'){
+      if(simGameId>0){simGameId=0;simSubState=0;playBuzzer(1200,10);return;}
+      mode='MENU';return;
+    }
+    if(simGameId===0){
+      if(b==='UP'){simGameSel=(simGameSel-1+4)%4;playBuzzer(1400,5);}
+      else if(b==='DOWN'){simGameSel=(simGameSel+1)%4;playBuzzer(1400,5);}
+      else if(b==='CLICK'||b==='SHUTTER'){
+        simGameId=simGameSel+1;
+        simSpaceSeed=Math.floor(Math.random()*10000);
+        playBuzzer(2200,15);
+        if(simGameId===1)resetSimSnake();
+        else if(simGameId===2)resetSimPong();
+        else if(simGameId===3)resetSimFlappy();
+        else if(simGameId===4)resetSimBreakout();
+      }
+      return;
+    }
+    if(simSubState===2){
+      if(b==='CLICK'||b==='SHUTTER'){
+        playBuzzer(2000,15);
+        simSpaceSeed=Math.floor(Math.random()*10000);
+        if(simGameId===1)resetSimSnake();
+        else if(simGameId===2)resetSimPong();
+        else if(simGameId===3)resetSimFlappy();
+        else if(simGameId===4)resetSimBreakout();
+      }
+      return;
+    }
+    if(simGameId===1){
+      if(b==='UP'&&simSnakeDir!==1)simSnakeDir=3;
+      else if(b==='DOWN'&&simSnakeDir!==3)simSnakeDir=1;
+      else if(b==='LEFT'&&simSnakeDir!==0)simSnakeDir=2;
+      else if(b==='RIGHT'&&simSnakeDir!==2)simSnakeDir=0;
+    } else if(simGameId===2){
+      if(b==='UP')simPongPlayerY=Math.max(30,simPongPlayerY-10);
+      else if(b==='DOWN')simPongPlayerY=Math.min(240,simPongPlayerY+10);
+    } else if(simGameId===3){
+      if(b==='UP'||b==='CLICK'||b==='SHUTTER'){
+        simFlappyVy=-4.5; playBuzzer(1900,8);
+      }
+    } else if(simGameId===4){
+      if(b==='LEFT') simBreakoutPadX=Math.max(14, simBreakoutPadX-10);
+      else if(b==='RIGHT') simBreakoutPadX=Math.min(188, simBreakoutPadX+10);
+    }
+    return;
+  }
+  if(mode==='FILES'){
+
+    if(feRenaming){
+      if(b==='MENU'){feRenaming=false;return;}
+      if(b==='UP'){
+        if(simKbdRow===-1)simKbdRow=3;
+        else if(simKbdRow===0){simKbdRow=-1;simKbdCol=simKbdCol>=5?1:0;}
+        else simKbdRow--;
+      }
+      if(b==='DOWN'){
+        if(simKbdRow===-1){simKbdRow=0;simKbdCol=simKbdCol===1?8:4;}
+        else if(simKbdRow===3){simKbdRow=-1;simKbdCol=simKbdCol>=5?1:0;}
+        else simKbdRow++;
+      }
+      if(b==='LEFT'){
+        if(simKbdRow===-1)simKbdCol=simKbdCol===1?0:1;
+        else simKbdCol=(simKbdCol-1+10)%10;
+      }
+      if(b==='RIGHT'){
+        if(simKbdRow===-1)simKbdCol=simKbdCol===0?1:0;
+        else simKbdCol=(simKbdCol+1)%10;
+      }
+
+      if(b==='CLICK'){
+        if(simKbdRow===-1&&simKbdCol===0){
+          if(simNamingBuffer.length>0)simNamingBuffer=simNamingBuffer.slice(0,-1);
+        } else if(simKbdRow===-1&&simKbdCol===1){
+          // Save rename
+          const l=feList();
+          if(simNamingBuffer&&l[feSel]){
+            l[feSel].n=simNamingBuffer+(feExt?'.'+feExt:'');
+          }
+          feRenaming=false;
+        } else if(simKbdRow>=0&&simKbdRow<4&&simKbdCol>=0&&simKbdCol<10){
+          if(simNamingBuffer.length<24){
+            simNamingBuffer+=simKbdRows[simKbdRow][simKbdCol];
+          }
+        }
+      } else if(b==='SHUTTER'){
+        const l=feList();
+        if(simNamingBuffer&&l[feSel]){
+          l[feSel].n=simNamingBuffer+(feExt?'.'+feExt:'');
+        }
+        feRenaming=false;
+      }
+      return;
+    }
+
+    if(feConfirm){if(b==='LEFT'||b==='RIGHT')feYes=!feYes;else if(b==='CLICK'){if(feYes){const l=feList();l.splice(feSel,1);if(feSel>=l.length)feSel=Math.max(0,l.length-1);}feConfirm=false;}else if(b==='MENU')feConfirm=false;return;}
+    if(feView){if(b==='MENU'||b==='LEFT')feView=false;return;}
+    if(b==='MENU'){mode='MENU';return;}
+    if(b==='LEFT'){if(fePath==='/'){mode='MENU';}else{fePath=fePath.substring(0,fePath.lastIndexOf('/'))||'/';feSel=0;}return;}
+    const l=feList();
+    if(b==='UP'&&l.length)feSel=(feSel-1+l.length)%l.length;
+    if(b==='DOWN'&&l.length)feSel=(feSel+1)%l.length;
+    if(b==='HOLD'&&l.length&&!l[feSel].d){
+      feRenaming=true;
+      const base=l[feSel].n.replace(/\.[^/.]+$/,'');
+      const dot=l[feSel].n.lastIndexOf('.');
+      feExt=dot>0?l[feSel].n.slice(dot+1):'';
+      simNamingBuffer=base;
+      simKbdRow=-1;simKbdCol=1; // Focus on SAVE
+      return;
+    }
+    if(b==='SHUTTER'&&l.length&&!l[feSel].d){feConfirm=true;feYes=false;}
+    if(b==='CLICK'&&l.length){if(l[feSel].d){fePath=(fePath==='/'?'':fePath)+'/'+l[feSel].n;feSel=0;}
+      else if(l[feSel].n.match(/jpg/i))feView=true;}
+    return;
+  }
+  if(mode==='NRF'){if(b==='MENU')mode='MENU';return;}
+  if(mode==='WIFI'){
+    if(b==='MENU')mode='MENU';
+    if(b==='RIGHT')mode='BLE';
+    if(b==='CLICK')wifiAtk=(wifiAtk+1)%5;
+    if(b==='UP'){simWifiSel=(simWifiSel-1+apsList.length)%apsList.length;playChirp(440,0.03);}
+    if(b==='DOWN'){simWifiSel=(simWifiSel+1)%apsList.length;playChirp(440,0.03);}
+    if(b==='SHUTTER'){
+      const target=apsList[simWifiSel];
+      simDeauthUntil=Date.now()+1800;
+      playChirp(880,0.08);
+      // Simulate client re-association and WPA2 handshake capture
+      setTimeout(()=>{
+        simHandshakeUntil=Date.now()+4000;
+        simHandshakeSsid=target[2];
+        const pcapPath='/HANDSHAKES/'+target[2]+'.pcap';
+        FS[pcapPath]='[PCAP_EAPOL_4WAY_HANDSHAKE_DATA_BURST: BSSID='+target[4]+']';
+        playTone(1200,0.12);
+      }, 1200);
+    }
+    return;
+  }
+  if(mode==='BLE'){
+    if(simFoxHunting){
+      if(b==='MENU'||b==='SHUTTER'){simFoxHunting=false;playChirp(350,0.05);return;}
+      if(b==='UP'||b==='DOWN'||b==='CLICK'){playChirp(900,0.02);}
+      return;
+    }
+    if(b==='MENU')mode='MENU';
+    if(b==='LEFT')mode='WIFI';
+    if(b==='CLICK'){bleAtk=(bleAtk+1)%7;blePkts=0;}
+    if(b==='UP'){simBleSel=(simBleSel-1+bleDvList.length)%bleDvList.length;playChirp(440,0.03);}
+    if(b==='DOWN'){simBleSel=(simBleSel+1)%bleDvList.length;playChirp(440,0.03);}
+    if(b==='SHUTTER'){
+      simFoxHunting=true;
+      playTone(950,0.1);
+    }
+    return;
+  }
+  if(mode==='SUBGHZ'){if(b==='MENU')mode='MENU';if(b==='SHUTTER'){sgHasCap=true;sgStatus='RX 40 pulses S/N 0x5A3C1 b1';sgColor=C.green;}
+    if(b==='RIGHT'){sgStatus='TX EV1527 0x5A3C1 btn 1';sgColor=C.green;}if(b==='CLICK'&&sgHasCap){sgStatus='Replaying captured train';sgColor=C.crimson;}return;}
+  if(mode==='IR'){if(b==='MENU')mode='MENU';if(b==='SHUTTER'){irHas=true;}if(b==='CLICK'){}return;}
+  if(mode==='SETTINGS'){
+    if(setConfirm){if(b==='LEFT'||b==='RIGHT')setYes=!setYes;else if(b==='CLICK')setConfirm=false;else if(b==='MENU')setConfirm=false;return;}
+    const items=buildSettings();
+    if(b==='MENU'){mode='MENU';return;}
+    if(b==='UP'){do{setSel=(setSel-1+items.length)%items.length;}while(items[setSel].h);}
+    if(b==='DOWN'){do{setSel=(setSel+1)%items.length;}while(items[setSel].h);}
+    const id=items[setSel].id,d=b==='RIGHT'?1:b==='LEFT'?-1:0;
+    if(d&&id){
+      if(id==='startMode'){
+        settings.startMode=(settings.startMode+d+startModeNames.length)%startModeNames.length;
+      }
+      else if(id==='sound')settings.sound=!settings.sound;
+      else if(id==='prefix'){
+        let idx=presetPrefixes.indexOf(settings.imgPrefix);
+        idx=(idx+d+presetPrefixes.length)%presetPrefixes.length;
+        settings.imgPrefix=presetPrefixes[idx];
+      }
+      else if(id==='imgIndex'){
+        settings.imgIndex=Math.max(1,settings.imgIndex+d);
+      }
+      else if(id==='prompt')settings.promptNaming=!settings.promptNaming;
+      else if(id in settingCycle)settings[id]=(settings[id]+d+settingCycle[id])%settingCycle[id];
+      else if(id in settingAdjust){const[st,mn,mx]=settingAdjust[id];settings[id]=Math.max(mn,Math.min(mx,settings[id]+d*st));}
+      else if(id==='prev')settings.prev=settings.prev?0:1;
+      else if(id==='flip')settings.flip=!settings.flip;else if(id==='mir')settings.mir=!settings.mir;
+    }
+    if(b==='CLICK'){
+      if(id==='startMode'){
+        settings.startMode=(settings.startMode+1)%startModeNames.length;
+      }
+      else if(id==='sound')settings.sound=!settings.sound;
+      else if(id==='prefix'){
+        let idx=presetPrefixes.indexOf(settings.imgPrefix);
+        idx=(idx+1)%presetPrefixes.length;
+        settings.imgPrefix=presetPrefixes[idx];
+      }
+      else if(id==='prompt')settings.promptNaming=!settings.promptNaming;
+      else if(id==='bench')benchVal='1420KB/s';else if(id==='health')healthVal='PASS';
+      else if(id==='erase'){setConfirm=true;setYes=false;}
+      else if(id==='files'){mode='FILES';fePath='/';feSel=0;}
+      else if(id==='cfgExport'){
+        const iniContent = `# AXIONTOOL SMART CONFIG\n[SYSTEM]\noperator_callsign = ${settings.callsign}\nstartup_mode = ${settings.startMode}\nbrightness = ${settings.bright}\nsound_enabled = ${settings.sound}\n\n[RADIO_AND_TACTICAL]\nwifi_hop_delay_sec = ${settings.hop}\nauto_save_pcap = ${settings.autoPcap}\nfoxhunt_sensitivity = ${settings.foxSens}\n\n[STORAGE_AND_NAMING]\nimage_prefix = ${settings.imgPrefix}\nnext_image_index = ${settings.imgIndex}\nprompt_naming = ${settings.promptNaming}\n`;
+        FS['/axion_config.ini'] = iniContent;
+        configExportStatus = 'SAVED OK';
+        playTone(2000, 0.12);
+      }
+      else if(id==='cfgReload'){
+        if(FS['/axion_config.ini']){
+          configExportStatus = 'LOADED OK';
+          playTone(2200, 0.15);
+        } else {
+          configExportStatus = 'NO FILE';
+          playTone(700, 0.1);
+        }
+      }
+      else if(id==='about')mode='ABOUT';
+      else if(id==='reset'){settings={callsign:'OPERATOR_01',startMode:0,bright:80,sound:true,scene:0,stillRes:3,stillQ:6,cbri:0,ccon:1,csat:0,csharp:2,cden:4,cev:0,cgain:2,cwb:0,prev:0,flip:true,mir:false,grid:1,hop:1,imgPrefix:'image',imgIndex:1,promptNaming:true,autoPcap:true,foxSens:65};}
+      else if(id==='save')mode='MENU';
+    }
+    return;
+  }
+  if(mode==='GUIDE'){
+    if(b==='MENU')mode='MENU';
+    if(b==='RIGHT'||b==='CLICK')guidePage=(guidePage+1)%GUIDE_DOCS.length;
+    if(b==='LEFT')guidePage=(guidePage-1+GUIDE_DOCS.length)%GUIDE_DOCS.length;
+    return;
+  }
+  if(mode==='ABOUT'){if(b==='MENU'||b==='CLICK')mode='SETTINGS';return;}
+}
+window.addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  if(e.key==='ArrowUp'){e.preventDefault();handleInput('UP');}
+  if(e.key==='ArrowDown'){e.preventDefault();handleInput('DOWN');}
+  if(e.key==='ArrowLeft'){e.preventDefault();handleInput('LEFT');}
+  if(e.key==='ArrowRight'){e.preventDefault();handleInput('RIGHT');}
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();handleInput('CLICK');}
+  if(k==='s'){e.preventDefault();handleInput(e.shiftKey?'HOLD':'SHUTTER');}
+  if(k==='m'||e.key==='Escape'){e.preventDefault();handleInput('MENU');}
+});
+
+// Use real XBM icon data if icons_data.js is present (bit 0 = foreground)
+if(typeof iconsData!=='undefined'){
+  const MAP={cam:44,gallery:49,sd:47,note:14,game:15,spectrum:6,radio:8,wifi:11,bt:2,subghz:45,ir:46,info:17,cfg:43};
+  drawIcon=function(x,y,kind,col,bg){
+    const id=MAP[kind];
+    if(id==null||!iconsData[id]){ctx.fillStyle=bg;ctx.fillRect(x,y,22,22);drawGlyph(x,y,kind,col);return;}
+    const bytes=iconsData[id];ctx.fillStyle=bg;ctx.fillRect(x,y,22,22);ctx.fillStyle=col;
+    for(let r=0;r<22;r++)for(let b=0;b<3;b++){const bv=bytes[r*3+b];for(let bit=0;bit<8;bit++){const cx=b*8+bit;
+      if(cx<22&&!(bv&(1<<bit)))ctx.fillRect(x+cx,y+r,1,1);}}
+  };
+}
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+#pragma once
+#include <Arduino.h>
+
+// Icon Dimensions: 22 x 22 Pixels (XBitmap format, 3 bytes per row = 66 bytes per icon)
+#define ICON_W 22
+#define ICON_H 22
+
+enum IconID {
+    ICON_ATTACK = 0,
+    ICON_BEACON_SNIFF,
+    ICON_BLUETOOTH,
+    ICON_BLUETOOTH_SNIFF,
+    ICON_DEAUTH_SNIFF,
+    ICON_DRAW,
+    ICON_PACKET_MONITOR,
+    ICON_PROBE_SNIFF,
+    ICON_SCANNERS,
+    ICON_CC_SKIMMERS,
+    ICON_SNIFFERS,
+    ICON_WIFI,
+    ICON_BEACON_SPAM,
+    ICON_RICK_ROLL,
+    ICON_REBOOT,
+    ICON_GENERAL_APPS,
+    ICON_UPDATE,
+    ICON_DEVICE,
+    ICON_DEVICE_INFO,
+    ICON_SD_UPDATE,
+    ICON_WEB_UPDATE,
+    ICON_EAPOL,
+    ICON_STATUS_BAT,
+    ICON_STATUS_SD,
+    ICON_PWNAGOTCHI,
+    ICON_SHUTDOWN,
+    ICON_BEACON_LIST,
+    ICON_GENERATE,
+    ICON_CLEAR_ICO,
+    ICON_KEYBOARD_ICO,
+    ICON_JOIN_WIFI,
+    ICON_LANGUAGE,
+    ICON_STATUS_GPS,
+    ICON_GPS_MENU,
+    ICON_DISABLE_TOUCH,
+    ICON_FLIPPER,
+    ICON_BLANK,
+    ICON_PINESCAN_SNIFF,
+    ICON_JOINED,
+    ICON_FORCE,
+    ICON_FUNNY_BEACON,
+    ICON_FLOCK,
+    ICON_BRIGHTNESS,
+    ICON_SETTINGS,
+    ICON_CAMERA,
+    ICON_SUBGHZ,
+    ICON_IR,
+    ICON_SD_CARD,
+    ICON_BATTERY,
+    ICON_GALLERY,
+    ICON_COUNT
+};
+
+// Imported 22x22 XBitmap Icon Matrix from Reference Code Asset Pack
+extern const unsigned char axion_icons[][66];
