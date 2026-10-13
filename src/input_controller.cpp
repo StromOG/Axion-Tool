@@ -14,6 +14,11 @@ bool InputController::lastClickRaw   = true;
 uint32_t InputController::shutterPressStart = 0;
 bool InputController::shutterHeld    = false;
 
+uint32_t InputController::touchPressStart = 0;
+uint32_t InputController::lastTapReleaseMs = 0;
+bool InputController::touchHoldFired = false;
+uint32_t InputController::totalTouchTaps = 0;
+
 float InputController::smoothX = (float)JOY_CENTER;
 float InputController::smoothY = (float)JOY_CENTER;
 
@@ -78,16 +83,56 @@ bool InputController::checkShutter() {
     return false; // Handled dynamically in poll() for tap vs hold
 }
 
-bool InputController::checkMenu() {
-    bool state = digitalRead(PIN_BTN_MENU);
-    uint32_t now = millis();
-    if (state == HIGH && lastMenuRaw == LOW && (now - lastMenuMs) > 200) {
-        lastMenuMs = now;
-        lastMenuRaw = state;
-        return true;
+bool InputController::isTouchPressed() {
+    return digitalRead(PIN_BTN_MENU) == HIGH;
+}
+
+uint32_t InputController::getTouchHoldDuration() {
+    if (digitalRead(PIN_BTN_MENU) == HIGH && touchPressStart > 0) {
+        return millis() - touchPressStart;
     }
-    lastMenuRaw = state;
-    return false;
+    return 0;
+}
+
+uint32_t InputController::getTouchTapCount() {
+    return totalTouchTaps;
+}
+
+InputEvent InputController::processCapacitiveTouch() {
+    uint32_t now = millis();
+    bool touchState = digitalRead(PIN_BTN_MENU); // TTP223 Active HIGH on GPIO 46
+
+    if (touchState == HIGH) {
+        if (lastMenuRaw == LOW) {
+            // Touch down edge
+            touchPressStart = now;
+            touchHoldFired = false;
+        } else if (!touchHoldFired && (now - touchPressStart >= 550)) {
+            // Touch held continuously > 550ms: Long Hold Action
+            touchHoldFired = true;
+            lastMenuRaw = touchState;
+            return EVT_TOUCH_HOLD;
+        }
+    } else {
+        if (lastMenuRaw == HIGH) {
+            // Touch released edge
+            uint32_t touchDur = now - touchPressStart;
+            lastMenuRaw = touchState;
+            if (!touchHoldFired && touchDur >= 30 && touchDur < 550) {
+                totalTouchTaps++;
+                if (now - lastTapReleaseMs < 380) {
+                    // Double Tap detected!
+                    lastTapReleaseMs = 0;
+                    return EVT_TOUCH_DOUBLE;
+                } else {
+                    lastTapReleaseMs = now;
+                    return EVT_MENU; // Clean Single Tap (Back / Exit / Cycle layout)
+                }
+            }
+        }
+    }
+    lastMenuRaw = touchState;
+    return EVT_NONE;
 }
 
 InputEvent InputController::poll() {
@@ -115,8 +160,11 @@ InputEvent InputController::poll() {
     }
     lastShutterRaw = shutterState;
 
+    // Check capacitive touch multi-gesture engine
+    InputEvent touchEvt = processCapacitiveTouch();
+    if (touchEvt != EVT_NONE) return touchEvt;
+
     if (checkClick()) return EVT_CLICK;
-    if (checkMenu())  return EVT_MENU;
 
     InputEvent evt = EVT_NONE;
     processJoystick(evt);

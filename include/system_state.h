@@ -19,9 +19,9 @@ enum SystemMode {
     MODE_SETTINGS,
     MODE_FILE_EXPLORER,
     MODE_ABOUT,
-    MODE_HELP
+    MODE_HELP,
+    MODE_HARDWARE_MONITOR
 };
-
 
 enum InputEvent {
     EVT_NONE = 0,
@@ -32,8 +32,10 @@ enum InputEvent {
     EVT_CLICK,
     EVT_SHUTTER,
     EVT_SHUTTER_HOLD,
-    EVT_MENU,
-    EVT_BACK
+    EVT_MENU,           // Single tap on TTP223 capacitive touch button
+    EVT_BACK,
+    EVT_TOUCH_DOUBLE,   // Double tap on TTP223 capacitive touch button
+    EVT_TOUCH_HOLD      // Long hold on TTP223 capacitive touch button (>500ms)
 };
 
 struct SystemState {

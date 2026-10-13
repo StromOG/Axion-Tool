@@ -266,6 +266,31 @@
     transform: translateY(2px) scale(0.96);
   }
   
+  .touch-btn {
+    width: 84px;
+    height: 36px;
+    background: linear-gradient(180deg, #aa1020 0%, #550510 100%);
+    border: 2px solid #ff3344;
+    border-radius: 10px;
+    color: #ffccd0;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(255, 30, 50, 0.35);
+    transition: all 0.08s ease;
+  }
+  .touch-btn:hover {
+    box-shadow: 0 0 16px rgba(255, 30, 50, 0.7);
+    filter: brightness(1.2);
+  }
+  .touch-btn:active {
+    transform: translateY(2px) scale(0.96);
+    background: #ff3344;
+    color: #fff;
+  }
+  
   .hint {
     font-size: 9px;
     color: var(--grey);
@@ -337,8 +362,9 @@
     
     <div class="action-buttons">
       <button class="shutter-btn" onclick="handleInput('SHUTTER')">SNAP</button>
-      <div class="hint">HOLD = VIDEO REC</div>
-      <button class="menu-btn" onclick="handleInput('MENU')">MENU</button>
+      <div class="hint">GPIO 0 // HOLD: REC</div>
+      <button class="touch-btn" onclick="handleTouchTap()" onmousedown="startTouchHold()" onmouseup="endTouchHold()">TOUCH</button>
+      <div class="hint">TTP223 // GPIO 46</div>
     </div>
   </div>
   
@@ -350,7 +376,8 @@
 
 <div class="key-legend">
   <kbd>▲▼◀▶</kbd> Joystick &nbsp;|&nbsp; <kbd>Enter / Space</kbd> Center Click &nbsp;|&nbsp;
-  <kbd>S</kbd> Shutter Snap &nbsp;|&nbsp; <kbd>Shift+S</kbd> Shutter Hold &nbsp;|&nbsp; <kbd>M / Esc</kbd> Menu
+  <kbd>S</kbd> Shutter Snap &nbsp;|&nbsp; <kbd>Shift+S</kbd> Shutter Hold &nbsp;|&nbsp;
+  <kbd>T</kbd> Touch Tap (Cycle Layout) &nbsp;|&nbsp; <kbd>Shift+T</kbd> Touch Hold (HW Probe)
 </div>
 
 <script>
@@ -506,6 +533,10 @@ function getTheme() {
 
 function F(px, weight) {
   ctx.font = (weight ? weight + ' ' : '') + px + 'px "Share Tech Mono", monospace';
+}
+
+function F_Title(px, weight) {
+  ctx.font = (weight ? weight + ' ' : '700 ') + px + 'px "Rajdhani", sans-serif';
 }
 
 // Smooth anti-aliased rounded rectangle
@@ -699,20 +730,20 @@ function drawAxionStarLogo(cx, cy, size, glowAlpha, drawChevrons) {
 // MENU CONFIGURATION
 // ==========================================
 const MENU = [
-  { l: 'Camera Viewfinder',     s: 'Live 20+ FPS & 3MP Capture',   ic: 'cam',        col: C.cyan,     mode: 'CAMERA' },
-  { l: 'Photo & Video Gallery', s: 'Review Photos & Video Clips',  ic: 'gallery',    col: C.white,    mode: 'GALLERY' },
-  { l: 'SD File Explorer',      s: 'Browse, View & Delete Files',  ic: 'sd',         col: C.green,    mode: 'FILES' },
-  { l: 'Notepad Text Editor',   s: 'Create & Edit SD TXT Notes',   ic: 'note',       col: C.cyan,     mode: 'NOTEPAD' },
-  { l: 'Cyber Mini-Games',      s: 'Retro 4-in-1 Space Arcade',    ic: 'game',       col: C.green,    mode: 'GAMES' },
-  { l: '2.4GHz RF Analyzer',    s: '126-Ch Spectrum & Waterfall',  ic: 'spectrum',   col: C.amber,    mode: 'NRF' },
-  { l: 'Wi-Fi 802.11 Monitor',  s: 'Beacon, Deauth & Encryption',  ic: 'wifi',       col: C.green,    mode: 'WIFI' },
-  { l: 'BLE Proximity Scanner', s: 'Discovery & Manufacturer IDs', ic: 'ble',        col: C.crimson,  mode: 'BLE' },
-  { l: 'Drone Remote ID Sniff', s: 'FAA ASTM F3411 Drone Radar',   ic: 'drone',      col: C.amber,    mode: 'DRONE' },
-  { l: 'Evil Captive Portal',   s: 'Phishing AP & Cred Harvester', ic: 'evilportal', col: C.crimson,  mode: 'EVILPORTAL' },
-  { l: 'Sub-GHz 433MHz Engine', s: 'Raw Pulse Capture & Replay',   ic: 'subghz',     col: C.amber,    mode: 'SUBGHZ' },
-  { l: 'Infrared Transceiver',  s: 'TSOP Capture & Signal Blaster',ic: 'ir',         col: C.cyan,     mode: 'IR' },
-  { l: 'Device Feature Guide',  s: 'Detailed Operation & Controls',ic: 'guide',      col: C.cyan,     mode: 'GUIDE' },
-  { l: 'System & Settings',     s: 'Configuration & Diagnostics',  ic: 'cfg',        col: C.white,    mode: 'SETTINGS' }
+  { l: 'Camera Viewfinder',     sl: 'CAMERA',    s: 'Live 20+ FPS & 3MP Capture',   tag: '3MP DVP',  ic: 'cam',        col: C.cyan,     mode: 'CAMERA' },
+  { l: 'Photo & Video Gallery', sl: 'GALLERY',   s: 'Review Photos & Video Clips',  tag: 'MEDIA',    ic: 'gallery',    col: C.white,    mode: 'GALLERY' },
+  { l: 'SD File Explorer',      sl: 'EXPLORER',  s: 'Browse, View & Delete Files',  tag: 'SDMMC',    ic: 'sd',         col: C.green,    mode: 'FILES' },
+  { l: 'Notepad Text Editor',   sl: 'NOTEPAD',   s: 'Create & Edit SD TXT Notes',   tag: 'EDITOR',   ic: 'note',       col: C.cyan,     mode: 'NOTEPAD' },
+  { l: 'Cyber Mini-Games',      sl: 'ARCADE',    s: 'Retro 4-in-1 Space Arcade',    tag: 'GAMES',    ic: 'game',       col: C.green,    mode: 'GAMES' },
+  { l: '2.4GHz RF Analyzer',    sl: '2.4G RF',   s: '126-Ch Spectrum & Waterfall',  tag: 'NRF24',    ic: 'spectrum',   col: C.amber,    mode: 'NRF' },
+  { l: 'Wi-Fi 802.11 Monitor',  sl: 'WI-FI',     s: 'Beacon, Deauth & Encryption',  tag: '802.11',   ic: 'wifi',       col: C.green,    mode: 'WIFI' },
+  { l: 'BLE Proximity Scanner', sl: 'BLE SCAN',  s: 'Discovery & Manufacturer IDs', tag: 'RADAR',    ic: 'ble',        col: C.crimson,  mode: 'BLE' },
+  { l: 'Drone Remote ID Sniff', sl: 'DRONE ID',  s: 'FAA ASTM F3411 Drone Radar',   tag: 'ODID',     ic: 'drone',      col: C.amber,    mode: 'DRONE' },
+  { l: 'Evil Captive Portal',   sl: 'PORTAL',    s: 'Phishing AP & Cred Harvester', tag: 'ROGUE',    ic: 'evilportal', col: C.crimson,  mode: 'EVILPORTAL' },
+  { l: 'Sub-GHz 433MHz Engine', sl: 'SUB-GHZ',   s: 'Raw Pulse Capture & Replay',   tag: '433MHz',   ic: 'subghz',     col: C.amber,    mode: 'SUBGHZ' },
+  { l: 'Infrared Transceiver',  sl: 'IR REMOTE', s: 'TSOP Capture & Signal Blaster',tag: '38kHz',    ic: 'ir',         col: C.cyan,     mode: 'IR' },
+  { l: 'Hardware Live Probe',   sl: 'HW PROBE',  s: 'Full BOM Diagnostic & Audit',  tag: 'SENSORS',  ic: 'guide',      col: C.cyan,     mode: 'HW_PROBE' },
+  { l: 'System & Settings',     sl: 'SETTINGS',  s: 'Configuration & Diagnostics',  tag: 'CONFIG',   ic: 'cfg',        col: C.white,    mode: 'SETTINGS' }
 ];
 
 let mode = 'BOOT';
@@ -876,19 +907,20 @@ function renderMenu() {
     // ------------------------------------
     // LAYOUT 1: 2x4 MODERN GRID TILES
     // ------------------------------------
+    const cols = 2, rows = 4, visibleTiles = cols * rows;
+    const totalPages = Math.ceil(MENU.length / visibleTiles);
+    const page = Math.floor(menuSel / visibleTiles);
+    const pageStart = page * visibleTiles;
+
     ctx.fillStyle = T.panel; ctx.fillRect(0, 0, 240, 22);
     ctx.fillStyle = T.primary; ctx.fillRect(0, 22, 240, 1);
     drawGraffitiCrown(14, 2, T.accent);
-    drawCyberGraffitiHUD(4, 5, 'AXION // GRID', T.primary, T.accent);
+    drawCyberGraffitiHUD(4, 5, `AXION // GRID [${page + 1}/${totalPages}]`, T.primary, T.accent);
     drawGraffitiBarcode(184, 8, T.border);
     ctx.fillStyle = T.primary; ctx.beginPath(); ctx.arc(226, 11, 3, 0, 7); ctx.fill();
     
-    const cols = 2, rows = 4, visibleTiles = cols * rows;
     const tileW = 111, tileH = 62;
     const startX = 6, startY = 26, spX = 6, spY = 5;
-    
-    const page = Math.floor(menuSel / visibleTiles);
-    const pageStart = page * visibleTiles;
     
     for (let r = 0; r < visibleTiles; r++) {
       const i = pageStart + r; if (i >= MENU.length) break;
@@ -899,27 +931,37 @@ function renderMenu() {
       const y = startY + rowIdx * (tileH + spY);
       const sel = (i === menuSel);
       
-      ctx.fillStyle = sel ? T.cardSel : T.surface; rr(x, y, tileW, tileH, 6); ctx.fill();
-      ctx.strokeStyle = sel ? it.col : T.cardBorder; rr(x, y, tileW, tileH, 6); ctx.stroke();
+      ctx.fillStyle = sel ? T.cardSel : T.surface; rr(x, y, tileW, tileH, 5); ctx.fill();
+      ctx.strokeStyle = sel ? it.col : T.cardBorder; rr(x, y, tileW, tileH, 5); ctx.stroke();
       
       if (sel) {
-        ctx.strokeStyle = it.col; rr(x - 1, y - 1, tileW + 2, tileH + 2, 7); ctx.stroke();
-        ctx.fillStyle = it.col; rr(x + 4, y + 4, 3, 14, 1); ctx.fill();
+        // Glowing outer accent rim & indicator tab
+        ctx.strokeStyle = it.col; rr(x - 1, y - 1, tileW + 2, tileH + 2, 6); ctx.stroke();
+        ctx.fillStyle = it.col; rr(x + 3, y + 4, 3, tileH - 8, 1); ctx.fill();
       }
       
-      const iconX = x + 10, iconY = y + 8;
+      // Top Row: Icon well on left (24x24)
+      const iconX = x + 8, iconY = y + 6;
       const iconWellBg = sel ? T.surface : T.panel;
-      ctx.fillStyle = iconWellBg; rr(iconX - 2, iconY - 2, 26, 26, 4); ctx.fill();
-      if (sel) { ctx.strokeStyle = it.col; rr(iconX - 2, iconY - 2, 26, 26, 4); ctx.stroke(); }
+      ctx.fillStyle = iconWellBg; rr(iconX - 2, iconY - 2, 26, 24, 3); ctx.fill();
+      if (sel) { ctx.strokeStyle = it.col; rr(iconX - 2, iconY - 2, 26, 24, 3); ctx.stroke(); }
       
       drawIcon(iconX, iconY, ICON_MAP[it.ic] || 43, sel ? it.col : T.subtext, iconWellBg);
       
-      F(9, sel ? 'bold' : ''); ctx.fillStyle = sel ? T.text : T.primary;
-      const shortLbl = it.l.split(' ')[0] + ' ' + (it.l.split(' ')[1] || '');
-      ctx.fillText(shortLbl.slice(0, 12), x + 40, y + 17);
+      // Top Row Right: Category Tag Pill Badge (e.g. [3MP DVP], [802.11], [433MHz])
+      const badgeX = x + 36, badgeY = y + 7, badgeW = tileW - 42;
+      ctx.fillStyle = sel ? T.surface : T.panel; rr(badgeX, badgeY, badgeW, 12, 2); ctx.fill();
+      ctx.strokeStyle = sel ? it.col : T.border; rr(badgeX, badgeY, badgeW, 12, 2); ctx.stroke();
+      F(8, 'bold'); ctx.fillStyle = sel ? it.col : T.subtext;
+      ctx.fillText(it.tag, badgeX + 4, badgeY + 9);
       
+      // Middle Row: Crisp bold title (it.sl - NEVER clipped)
+      F_Title(13, 'bold'); ctx.fillStyle = sel ? T.text : T.primary;
+      ctx.fillText(it.sl, x + 8, y + 43);
+      
+      // Bottom Row: Clean subtext preview
       F(8); ctx.fillStyle = sel ? it.col : T.subtext;
-      ctx.fillText(it.s.slice(0, 16), x + 8, y + 50);
+      ctx.fillText(it.s.slice(0, 16), x + 8, y + 55);
     }
     
   } else {
@@ -966,7 +1008,10 @@ function renderMenu() {
     }
   }
   
-  bottomBar('▲▼:NAV  ●:SELECT  ◀:BACK  [RF:2.4G+433M+IR]');
+  const hint = settings.menuLayout === 1
+    ? '▲▼◀▶:NAV  ●:SELECT  [TOUCH:LAYOUT]'
+    : '▲▼:NAV  ●:SELECT  [TOUCH:LAYOUT]';
+  bottomBar(hint);
 }
 
 // ==========================================
@@ -1382,6 +1427,50 @@ function renderGuide() {
   bottomBar('LEFT/RIGHT:Pages MENU:Exit');
 }
 
+let hwProbeSel = 0;
+function renderHardwareProbe() {
+  const T = getTheme();
+  topBar('HARDWARE PROBE // BOM AUDIT', T.accent);
+  
+  const hw = [
+    ['ESP32-S3 CPU',   '240MHz DUAL-CORE',  'N16R8 FLASH/PSRAM', true],
+    ['OV3660 3MP CAM', 'DVP BUS ONLINE',    '14-PIN DVP PARALLEL', true],
+    ['ILI9341 2.8 TFT','SPI 40MHz READY',   'CS:41 DC:42 SCK:14', true],
+    ['SDMMC FAT32',    'MOUNTED (32GB OK)', 'CLK:38 CMD:39 D0:40', true],
+    ['NRF24L01+PA+LNA','READY (0dBm)',      'CSN:21 CE:43 SW:ON', true],
+    ['433M STX/SRX882','READY (433.9M)',    'TX:43 RX:44 RED-PCB', true],
+    ['TSOP 38k + 940nm','ARMED (TURBO)',    'RX:45 TX:44 (100R)', true],
+    ['TTP223 TOUCH',   'CAPACITIVE ACTIVE', 'GPIO 46 (TAP/DBL/HLD)', true],
+    ['PS2 THUMBSTICK', 'ADC1 DUAL AXIS',    'VRX:1 VRY:2 SW:3', true],
+    ['SHUTTER BTN',    'DIP TACTILE',       'GPIO 0 (GND TRIGGER)', true],
+    ['5V BUZZER (B10)','PWM AUDIO READY',   'GPIO 44 LEDC CH0', true],
+    ['LI-ION 5000mAh', '4.12V (96%) OK',    '100k/100k DIVIDER', true]
+  ];
+  
+  const startY = 25, itemH = 21, sp = 2;
+  for (let i = 0; i < 11; i++) {
+    const y = startY + i * (itemH + sp);
+    const sel = (i === hwProbeSel);
+    ctx.fillStyle = sel ? T.cardSel : T.surface; rr(6, y, 228, itemH, 3); ctx.fill();
+    ctx.strokeStyle = sel ? T.accent : T.cardBorder; rr(6, y, 228, itemH, 3); ctx.stroke();
+    
+    // Status pip
+    ctx.fillStyle = hw[i][3] ? C.green : C.crimson;
+    ctx.beginPath(); ctx.arc(14, y + 10, 3, 0, 7); ctx.fill();
+    
+    F(8, 'bold'); ctx.fillStyle = sel ? T.text : T.primary;
+    ctx.fillText(hw[i][0], 22, y + 9);
+    
+    ctx.fillStyle = hw[i][3] ? C.green : C.crimson;
+    ctx.fillText(hw[i][1], 120, y + 9);
+    
+    F(7); ctx.fillStyle = T.subtext;
+    ctx.fillText(hw[i][2], 22, y + 17);
+  }
+  
+  bottomBar('CLICK:Self-Test  TOUCH:Back  JOY:Nav');
+}
+
 // ==========================================
 // 8. MAIN RENDER LOOP
 // ==========================================
@@ -1415,6 +1504,7 @@ function render(ts) {
   else if (mode === 'IR') renderIr();
   else if (mode === 'GUIDE') renderGuide();
   else if (mode === 'SETTINGS') renderSettings();
+  else if (mode === 'HW_PROBE') renderHardwareProbe();
   
   if (mode !== 'BOOT' && mode !== 'CAMERA') applyBrightness();
   
@@ -1546,6 +1636,41 @@ function handleInput(btn) {
     return;
   }
   
+  if (btn === 'TOUCH_TAP') {
+    if (mode === 'MENU') {
+      settings.menuLayout = (settings.menuLayout + 1) % 3;
+      playBuzzer(2200, 10);
+    } else {
+      mode = 'MENU';
+      playBuzzer(1600, 8);
+    }
+    return;
+  }
+  
+  if (btn === 'TOUCH_DOUBLE') {
+    // Quick Action: Toggle Stealth Profile
+    settings.profileMode = settings.profileMode === 1 ? 0 : 1;
+    if (settings.profileMode === 1) { settings.bright = 25; settings.sound = false; }
+    else { settings.bright = 85; settings.sound = true; }
+    playBuzzer(2600, 15);
+    return;
+  }
+  
+  if (btn === 'TOUCH_HOLD') {
+    // Long hold: Instant jump to Live Hardware Probe
+    mode = 'HW_PROBE';
+    playBuzzer(2400, 25);
+    return;
+  }
+  
+  if (mode === 'HW_PROBE') {
+    if (btn === 'UP') { hwProbeSel = (hwProbeSel - 1 + 11) % 11; playBuzzer(1600, 6); }
+    else if (btn === 'DOWN') { hwProbeSel = (hwProbeSel + 1) % 11; playBuzzer(1600, 6); }
+    else if (btn === 'CLICK' || btn === 'SHUTTER') { playBuzzer(2800, 30); }
+    else if (btn === 'MENU') { mode = 'MENU'; }
+    return;
+  }
+  
   if (mode === 'DRONE') {
     if (btn === 'MENU') mode = 'MENU';
     else if (btn === 'SHUTTER') playBuzzer(2200, 20);
@@ -1565,6 +1690,34 @@ function handleInput(btn) {
   }
 }
 
+let touchHoldTimer = null;
+let lastTouchTapTime = 0;
+
+function handleTouchTap() {
+  const now = Date.now();
+  if (now - lastTouchTapTime < 380) {
+    lastTouchTapTime = 0;
+    handleInput('TOUCH_DOUBLE');
+  } else {
+    lastTouchTapTime = now;
+    handleInput('TOUCH_TAP');
+  }
+}
+
+function startTouchHold() {
+  touchHoldTimer = setTimeout(() => {
+    handleInput('TOUCH_HOLD');
+    touchHoldTimer = null;
+  }, 550);
+}
+
+function endTouchHold() {
+  if (touchHoldTimer) {
+    clearTimeout(touchHoldTimer);
+    touchHoldTimer = null;
+  }
+}
+
 // Keyboard event listener
 window.addEventListener('keydown', e => {
   if (e.key === 'ArrowUp') { e.preventDefault(); handleInput('UP'); }
@@ -1573,6 +1726,11 @@ window.addEventListener('keydown', e => {
   else if (e.key === 'ArrowRight') { e.preventDefault(); handleInput('RIGHT'); }
   else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleInput('CLICK'); }
   else if (e.key.toLowerCase() === 's') { e.preventDefault(); handleInput(e.shiftKey ? 'HOLD' : 'SHUTTER'); }
+  else if (e.key.toLowerCase() === 't') {
+    e.preventDefault();
+    if (e.shiftKey) handleInput('TOUCH_HOLD');
+    else handleTouchTap();
+  }
   else if (e.key.toLowerCase() === 'm' || e.key === 'Escape') { e.preventDefault(); handleInput('MENU'); }
 });
 

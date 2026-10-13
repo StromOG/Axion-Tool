@@ -14,11 +14,16 @@ public:
     static float getBatteryVoltage();
     static uint8_t getBatteryPercent();
 
+    // Capacitive Touch Diagnostics & State (TTP223 on GPIO 46)
+    static bool isTouchPressed();
+    static uint32_t getTouchHoldDuration();
+    static uint32_t getTouchTapCount();
+
 private:
     static void processJoystick(InputEvent& evt);
     static bool checkClick();
     static bool checkShutter();
-    static bool checkMenu();
+    static InputEvent processCapacitiveTouch();
 
     static uint32_t lastJoyPollMs;
     static uint32_t lastShutterMs;
@@ -30,6 +35,12 @@ private:
     static bool lastClickRaw;
     static uint32_t shutterPressStart;
     static bool shutterHeld;
+
+    // TTP223 Capacitive Touch Multi-Gesture Engine State
+    static uint32_t touchPressStart;
+    static uint32_t lastTapReleaseMs;
+    static bool touchHoldFired;
+    static uint32_t totalTouchTaps;
 
     static float smoothX;
     static float smoothY;

@@ -57,27 +57,28 @@ static void runSettingsMode(InputEvent evt);
 static void runFileExplorerMode(InputEvent evt);
 static void runAboutMode(InputEvent evt);
 static void runHelpMode(InputEvent evt);
+static void runHardwareMonitorMode(InputEvent evt);
 
 static int menuSelection = 0;
 static int menuScroll = 0;
 
-// Main Menu (Clear, direct technical labels)
+// Main Menu (Crisp typography, full labels for lists, explicit short labels for tiles)
 static const MenuItem mainMenuItems[] = {
-    { "Camera Viewfinder",     "Live 20+ FPS & 3MP Capture",   ICON_CAMERA,         THEME_CYAN },
-    { "Photo & Video Gallery", "Review Photos & Video Clips",  ICON_GALLERY,        THEME_WHITE },
-    { "SD File Explorer",      "Browse, View & Delete Files",  ICON_SD_CARD,        THEME_GREEN },
-    { "Notepad Text Editor",   "Create & Edit SD TXT Notes",   ICON_DRAW,           THEME_CYAN },
-    { "Cyber Mini-Games",      "Retro 4-in-1 Space Arcade",    ICON_GENERAL_APPS,   THEME_GREEN },
-    { "2.4GHz RF Analyzer",    "126-Ch Spectrum & Waterfall",  ICON_PACKET_MONITOR, THEME_AMBER },
-    { "Wi-Fi 802.11 Monitor",  "Beacon, Deauth & Encryption",  ICON_WIFI,           THEME_GREEN },
-    { "BLE Proximity Scanner", "Discovery & Manufacturer IDs", ICON_BLUETOOTH,      THEME_CRIMSON },
-    { "Drone Remote ID Sniff", "FAA ASTM F3411 Drone Radar",   ICON_PROBE_SNIFF,    THEME_AMBER },
-    { "Signal Fox-Hunt Seeker","Proximity Direction Finding",  ICON_SCANNERS,       THEME_AMBER },
-    { "Surveillance Scanner",  "Covert Skimmer & Cam Hunter",  ICON_CC_SKIMMERS,    THEME_CRIMSON },
-    { "Sub-GHz 433MHz Engine", "Raw Pulse Capture & Replay",   ICON_SUBGHZ,         THEME_AMBER },
-    { "Infrared Transceiver",  "TSOP Capture & Signal Blaster",ICON_IR,             THEME_CYAN },
-    { "Device Feature Guide",  "Detailed Operation & Controls",ICON_DEVICE,         THEME_CYAN },
-    { "System & Settings",     "Configuration & Diagnostics",  ICON_SETTINGS,       THEME_WHITE }
+    { "Camera Viewfinder",     "CAMERA",      "Live 20+ FPS & 3MP Capture",   "3MP DVP",   ICON_CAMERA,         THEME_CYAN },
+    { "Photo & Video Gallery", "GALLERY",     "Review Photos & Video Clips",  "MEDIA",     ICON_GALLERY,        THEME_WHITE },
+    { "SD File Explorer",      "EXPLORER",    "Browse, View & Delete Files",  "SDMMC",     ICON_SD_CARD,        THEME_GREEN },
+    { "Notepad Text Editor",   "NOTEPAD",     "Create & Edit SD TXT Notes",   "EDITOR",    ICON_DRAW,           THEME_CYAN },
+    { "Cyber Mini-Games",      "ARCADE",      "Retro 4-in-1 Space Arcade",    "GAMES",     ICON_GENERAL_APPS,   THEME_GREEN },
+    { "2.4GHz RF Analyzer",    "2.4G RF",     "126-Ch Spectrum & Waterfall",  "NRF24",     ICON_PACKET_MONITOR, THEME_AMBER },
+    { "Wi-Fi 802.11 Monitor",  "WI-FI",       "Beacon, Deauth & Encryption",  "802.11",    ICON_WIFI,           THEME_GREEN },
+    { "BLE Proximity Scanner", "BLE SCAN",    "Discovery & Manufacturer IDs", "RADAR",     ICON_BLUETOOTH,      THEME_CRIMSON },
+    { "Drone Remote ID Sniff", "DRONE ID",    "FAA ASTM F3411 Drone Radar",   "ODID",      ICON_PROBE_SNIFF,    THEME_AMBER },
+    { "Signal Fox-Hunt Seeker","FOX HUNT",    "Proximity Direction Finding",  "SIGNAL",    ICON_SCANNERS,       THEME_AMBER },
+    { "Surveillance Scanner",  "SKIMMER",     "Covert Skimmer & Cam Hunter",  "HUNTER",    ICON_CC_SKIMMERS,    THEME_CRIMSON },
+    { "Sub-GHz 433MHz Engine", "SUB-GHZ",     "Raw Pulse Capture & Replay",   "433MHz",    ICON_SUBGHZ,         THEME_AMBER },
+    { "Infrared Transceiver",  "IR REMOTE",   "TSOP Capture & Signal Blaster","38kHz",     ICON_IR,             THEME_CYAN },
+    { "Hardware Live Probe",   "HW PROBE",    "Full BOM Diagnostic & Audit",  "SENSORS",   ICON_DEVICE,         THEME_CYAN },
+    { "System & Settings",     "SETTINGS",    "Configuration & Diagnostics",  "CONFIG",    ICON_SETTINGS,       THEME_WHITE }
 };
 static const int MENU_COUNT = sizeof(mainMenuItems) / sizeof(mainMenuItems[0]);
 static const int MENU_VISIBLE = 8;
@@ -163,6 +164,7 @@ void taskCore1(void* pv) {
             case MODE_HELP:          runHelpMode(evt);        break;
             case MODE_SETTINGS:      runSettingsMode(evt);    break;
             case MODE_ABOUT:         runAboutMode(evt);       break;
+            case MODE_HARDWARE_MONITOR: runHardwareMonitorMode(evt); break;
             default: break;
         }
 
@@ -221,10 +223,10 @@ static void drawMainMenu() {
         }
     }
 
-    char statBuf[52];
-    snprintf(statBuf, sizeof(statBuf), "SD:%s | %.2fV %d%% | %.0f FPS",
-             g_state.sdMounted ? "OK" : "NO", g_state.batteryVoltage, g_state.batteryPercent, g_state.currentFps);
-    DisplayUI::drawBottomBar(statBuf);
+    const char* hint = (layout == LAYOUT_GRID)
+        ? "▲▼◀▶:NAV  ●:SELECT  [TOUCH:LAYOUT]"
+        : "▲▼:NAV  ●:SELECT  [TOUCH:LAYOUT]";
+    DisplayUI::drawBottomBar(hint);
     DisplayUI::endFrame();
 }
 
@@ -260,6 +262,36 @@ static void runMainMenu(InputEvent evt) {
                 needsRedraw = true; triggerChirp(1400, 6);
             }
             break;
+        case EVT_MENU: {
+            // Single tap on TTP223 capacitive touch: cycle home layouts dynamically
+            uint8_t nextLayout = (layout + 1) % 3;
+            SettingsManager::setMenuLayout(nextLayout);
+            needsRedraw = true;
+            triggerChirp(2200, 10);
+            break;
+        }
+        case EVT_TOUCH_DOUBLE: {
+            // Double tap on TTP223 touch sensor: Quick Stealth Ops toggle
+            uint8_t curProf = SettingsManager::getProfileMode();
+            uint8_t nextProf = (curProf == 1) ? 0 : 1;
+            SettingsManager::setProfileMode(nextProf);
+            if (nextProf == 1) {
+                SettingsManager::setBrightness(25);
+                SettingsManager::setSoundEnabled(false);
+            } else {
+                SettingsManager::setBrightness(85);
+                SettingsManager::setSoundEnabled(true);
+            }
+            needsRedraw = true;
+            triggerChirp(2600, 15);
+            break;
+        }
+        case EVT_TOUCH_HOLD: {
+            // Long hold on TTP223 touch sensor (>550ms): instant jump to Hardware Probe HUD
+            triggerChirp(2400, 20);
+            switchMode(MODE_HARDWARE_MONITOR);
+            return;
+        }
         case EVT_CLICK:
         case EVT_SHUTTER:
             triggerChirp(1900, 10);
@@ -277,7 +309,7 @@ static void runMainMenu(InputEvent evt) {
                 case 10: switchMode(MODE_SKIMMER_DETECTOR); break;
                 case 11: switchMode(MODE_SUBGHZ);           break;
                 case 12: switchMode(MODE_IR);               break;
-                case 13: switchMode(MODE_HELP);             break;
+                case 13: switchMode(MODE_HARDWARE_MONITOR); break;
                 case 14: switchMode(MODE_SETTINGS);         break;
             }
             return;
@@ -2494,6 +2526,59 @@ static void runSettingsMode(InputEvent evt) {
 
     DisplayUI::beginFrame();
     DisplayUI::drawSettingsMenu(selIndex, namePtrs, valPtrs, isHeader, SID_TOTAL, scroll, VISIBLE);
+    DisplayUI::endFrame();
+}
+
+// ============================================================
+// HARDWARE LIVE PROBE & LIVE BOM AUDIT MODE
+// ============================================================
+static int hwProbeSel = 0;
+static void runHardwareMonitorMode(InputEvent evt) {
+    if (evt == EVT_MENU || evt == EVT_BACK) {
+        switchMode(MODE_MAIN_MENU);
+        return;
+    }
+
+    if (evt == EVT_UP) {
+        hwProbeSel = (hwProbeSel - 1 + 12) % 12;
+        triggerChirp(1400, 6);
+    } else if (evt == EVT_DOWN) {
+        hwProbeSel = (hwProbeSel + 1) % 12;
+        triggerChirp(1400, 6);
+    } else if (evt == EVT_CLICK || evt == EVT_SHUTTER) {
+        // Run active self-test on selected BOM module!
+        triggerChirp(2400, 25);
+        if (hwProbeSel == 0) {
+            // ESP32-S3 silicon self-test
+            triggerChirp(2400, 15);
+        } else if (hwProbeSel == 3) {
+            // SDMMC read/write benchmark test
+            if (g_state.sdMounted) SDManager::testCardHealth();
+        } else if (hwProbeSel == 4) {
+            // NRF24 test ping
+            if (g_state.nrfActive) NRFScanner::sweepStep();
+        } else if (hwProbeSel == 5) {
+            // 433MHz test beep burst
+            triggerChirp(2200, 20);
+        } else if (hwProbeSel == 6) {
+            // 38kHz IR test blaster pulse
+            IREngine::blastUniversalPower();
+        } else if (hwProbeSel == 10) {
+            // Buzzer cyber test arpeggio
+            triggerChirp(1800, 20);
+            vTaskDelay(pdMS_TO_TICKS(30));
+            triggerChirp(2200, 20);
+            vTaskDelay(pdMS_TO_TICKS(30));
+            triggerChirp(2600, 25);
+        }
+    }
+
+    uint32_t freePsram = ESP.getFreePsram() / 1024;
+    DisplayUI::beginFrame();
+    DisplayUI::drawHardwareProbeScreen(hwProbeSel, g_state.uptimeMs / 1000,
+                                       g_state.batteryVoltage, g_state.batteryPercent,
+                                       freePsram, g_state.sdMounted,
+                                       g_state.nrfActive, true, true);
     DisplayUI::endFrame();
 }
 

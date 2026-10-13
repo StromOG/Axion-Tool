@@ -48,8 +48,10 @@ struct UITheme {
 };
 
 struct MenuItem {
-    const char* label;
-    const char* subtext;
+    const char* label;      // Full title for Dashboard / List views
+    const char* shortLabel; // Crisp uppercase title for Grid tiles (never clipped)
+    const char* subtext;    // Detailed secondary description
+    const char* gridTag;    // Compact category pill tag (e.g. "3MP DVP", "802.11")
     uint8_t iconId;
     uint16_t accentColor;
 };
@@ -64,6 +66,11 @@ public:
     // Active Theme Token Accessor
     static UITheme getTheme();
 
+    // Smooth Typography Configuration Helpers (LovyanGFX Proportional Fonts)
+    static void setHeadingFont();       // Proportional crisp header font
+    static void setBodyFont();          // Smooth body font
+    static void setMonoFont();          // Fixed-width telemetry font
+
     // Flicker-free buffered compose: beginFrame() clears the PSRAM back buffer,
     // draw with the helpers / canvas(), then endFrame() dims + pushes it once.
     static void beginFrame(uint16_t bg = THEME_BG);
@@ -74,6 +81,11 @@ public:
     static void drawDashboardHome(const MenuItem* items, uint8_t count, int selectedIndex,
                                   float batVolt, int batPct, float fps, bool sdOk, float tempC, uint32_t freePsramKB);
     static void drawGridHome(const MenuItem* items, uint8_t count, int selectedIndex);
+
+    // Hardware Live Probe & BOM Sensor Audit Screen
+    static void drawHardwareProbeScreen(int selectedTestIndex, uint32_t uptimeSec, float batVolts,
+                                        uint8_t batPct, uint32_t freePsramKB, bool sdMounted,
+                                        bool nrfPowered, bool irArmed, bool subGhzActive);
 
     // Modern Header & Footer HUD
     static void drawTopBar(const char* title, uint16_t accentColor, uint8_t batteryPercent = 100);

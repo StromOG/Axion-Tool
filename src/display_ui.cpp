@@ -228,6 +228,21 @@ void DisplayUI::drawIcon(int x, int y, uint8_t iconId, uint16_t fgColor, uint16_
     D->drawXBitmap(x, y, axion_icons[iconId], ICON_W, ICON_H, fgColor, bgColor);
 }
 
+void DisplayUI::setHeadingFont() {
+    D->setFont(&fonts::Font2);
+    D->setTextSize(1);
+}
+
+void DisplayUI::setBodyFont() {
+    D->setFont(&fonts::Font2);
+    D->setTextSize(1);
+}
+
+void DisplayUI::setMonoFont() {
+    D->setFont(&fonts::Font0);
+    D->setTextSize(1);
+}
+
 void DisplayUI::drawGraffitiCrown(int x, int y, uint16_t color) {
     // 3-point underground graffiti crown (Basquiat-inspired cyber street tag)
     // Left peak
@@ -476,18 +491,24 @@ void DisplayUI::drawDashboardHome(const MenuItem* items, uint8_t count, int sele
 void DisplayUI::drawGridHome(const MenuItem* items, uint8_t count, int selectedIndex) {
     UITheme theme = getTheme();
 
-    // Header
-    D->fillRect(0, 0, SCREEN_WIDTH, 22, theme.panel);
-    D->drawFastHLine(0, 22, SCREEN_WIDTH, theme.primary);
-    drawGraffitiCrown(14, 2, theme.accent);
-    drawCyberGraffitiHUD(4, 5, "AXION // GRID", theme.primary, theme.accent);
-    drawGraffitiBarcode(SCREEN_WIDTH - 44, 8, theme.border);
-    D->fillCircle(SCREEN_WIDTH - 14, 11, 3, theme.primary);
-
-    // 2 columns x 4 rows visible on screen
+    // 2 columns x 4 rows visible on screen (8 tiles per page)
     int cols = 2;
     int rows = 4;
     int visibleTiles = cols * rows;
+    int totalPages = (count + visibleTiles - 1) / visibleTiles;
+    int page = selectedIndex / visibleTiles;
+    int pageStart = page * visibleTiles;
+
+    // Header with page indicator
+    D->fillRect(0, 0, SCREEN_WIDTH, 22, theme.panel);
+    D->drawFastHLine(0, 22, SCREEN_WIDTH, theme.primary);
+    drawGraffitiCrown(14, 2, theme.accent);
+
+    char hudTitle[32];
+    snprintf(hudTitle, sizeof(hudTitle), "AXION // GRID [%d/%d]", page + 1, totalPages);
+    drawCyberGraffitiHUD(4, 5, hudTitle, theme.primary, theme.accent);
+    drawGraffitiBarcode(SCREEN_WIDTH - 44, 8, theme.border);
+    D->fillCircle(SCREEN_WIDTH - 14, 11, 3, theme.primary);
 
     int tileW = 111;
     int tileH = 62;
@@ -495,9 +516,6 @@ void DisplayUI::drawGridHome(const MenuItem* items, uint8_t count, int selectedI
     int startY = 26;
     int spX = 6;
     int spY = 5;
-
-    int page = selectedIndex / visibleTiles;
-    int pageStart = page * visibleTiles;
 
     for (int r = 0; r < visibleTiles; r++) {
         int i = pageStart + r;
@@ -512,44 +530,116 @@ void DisplayUI::drawGridHome(const MenuItem* items, uint8_t count, int selectedI
         uint16_t cardBg = isSel ? theme.cardSel : theme.surface;
         uint16_t borderCol = isSel ? items[i].accentColor : theme.cardBorder;
 
-        D->fillRoundRect(x, y, tileW, tileH, 6, cardBg);
-        D->drawRoundRect(x, y, tileW, tileH, 6, borderCol);
+        D->fillRoundRect(x, y, tileW, tileH, 5, cardBg);
+        D->drawRoundRect(x, y, tileW, tileH, 5, borderCol);
 
         if (isSel) {
-            D->drawRoundRect(x - 1, y - 1, tileW + 2, tileH + 2, 7, items[i].accentColor);
-            D->fillRoundRect(x + 4, y + 4, 3, 14, 1, items[i].accentColor);
+            // Glowing outer accent rim
+            D->drawRoundRect(x - 1, y - 1, tileW + 2, tileH + 2, 6, items[i].accentColor);
+            // Left active tab pip
+            D->fillRoundRect(x + 3, y + 4, 3, tileH - 8, 1, items[i].accentColor);
         }
 
-        // Centered Icon in badge
-        int iconX = x + 10;
-        int iconY = y + 8;
+        // Top Row: Icon well on left (24x24)
+        int iconX = x + 8;
+        int iconY = y + 6;
         uint16_t iconWellBg = isSel ? theme.surface : theme.panel;
-        D->fillRoundRect(iconX - 2, iconY - 2, 26, 26, 4, iconWellBg);
-        if (isSel) D->drawRoundRect(iconX - 2, iconY - 2, 26, 26, 4, items[i].accentColor);
+        D->fillRoundRect(iconX - 2, iconY - 2, 26, 24, 3, iconWellBg);
+        if (isSel) D->drawRoundRect(iconX - 2, iconY - 2, 26, 24, 3, items[i].accentColor);
 
         uint16_t iconFg = isSel ? items[i].accentColor : theme.subtext;
         drawIcon(iconX, iconY, items[i].iconId, iconFg, iconWellBg);
 
-        // Right side badge text
+        // Top Row Right: Category Tag Pill Badge (e.g. [3MP DVP], [802.11], [433MHz])
+        int badgeX = x + 36;
+        int badgeY = y + 7;
+        int badgeW = tileW - 42; // ~69px
+        D->fillRoundRect(badgeX, badgeY, badgeW, 12, 2, isSel ? theme.surface : theme.panel);
+        D->drawRoundRect(badgeX, badgeY, badgeW, 12, 2, isSel ? items[i].accentColor : theme.border);
+        D->setTextColor(isSel ? items[i].accentColor : theme.subtext, isSel ? theme.surface : theme.panel);
+        D->setFont(&fonts::Font0);
         D->setTextSize(1);
-        D->setTextColor(isSel ? theme.text : THEME_WHITE, cardBg);
-        D->setCursor(x + 40, y + 8);
+        D->setCursor(badgeX + 4, badgeY + 2);
+        D->print(items[i].gridTag ? items[i].gridTag : "TOOL");
 
-        // Abbreviate or format label for tile width
-        char shortLbl[14];
-        strncpy(shortLbl, items[i].label, 13);
-        shortLbl[13] = '\0';
-        char* spc = strchr(shortLbl, ' ');
-        if (spc && (spc - shortLbl) > 3) *spc = '\0'; // trim second word if long
-        D->print(shortLbl);
+        // Middle Row: Crisp uppercase title (shortLabel - NEVER clipped)
+        D->setTextColor(isSel ? theme.text : theme.primary, cardBg);
+        D->setFont(&fonts::Font2);
+        D->setTextSize(1);
+        D->setCursor(x + 8, y + 33);
+        D->print(items[i].shortLabel ? items[i].shortLabel : items[i].label);
 
+        // Bottom Row: Clean subtext preview
         D->setTextColor(isSel ? items[i].accentColor : theme.subtext, cardBg);
-        D->setCursor(x + 8, y + 44);
-        char subShort[18];
-        strncpy(subShort, items[i].subtext, 17);
-        subShort[17] = '\0';
-        D->print(subShort);
+        D->setFont(&fonts::Font0);
+        D->setTextSize(1);
+        D->setCursor(x + 8, y + 49);
+        char sub[16];
+        strncpy(sub, items[i].subtext, 15);
+        sub[15] = '\0';
+        D->print(sub);
     }
+}
+
+void DisplayUI::drawHardwareProbeScreen(int selectedTestIndex, uint32_t uptimeSec, float batVolts,
+                                        uint8_t batPct, uint32_t freePsramKB, bool sdMounted,
+                                        bool nrfPowered, bool irArmed, bool subGhzActive) {
+    UITheme theme = getTheme();
+    drawTopBar("HARDWARE PROBE // BOM AUDIT", theme.accent, batPct);
+
+    struct HwItem {
+        const char* name;
+        const char* status;
+        const char* pinSpec;
+        bool ok;
+    };
+
+    HwItem hw[] = {
+        { "ESP32-S3 CPU",   "240MHz DUAL",       "N16R8 FLASH/PSRAM", true },
+        { "OV3660 3MP CAM", "DVP BUS ONLINE",    "14-PIN DVP PARALLEL", true },
+        { "ILI9341 2.8 TFT","SPI 40MHz READY",   "CS:41 DC:42 SCK:14", true },
+        { "SDMMC FAT32",    sdMounted ? "MOUNTED (OK)" : "NO CARD", "CLK:38 CMD:39 D0:40", sdMounted },
+        { "NRF24L01+PA+LNA",nrfPowered ? "READY (0dBm)" : "ISOLATED (OFF)", "CSN:21 CE:43 SW:ON", nrfPowered },
+        { "433M STX/SRX882",subGhzActive ? "READY (433.9M)" : "STANDBY", "TX:43 RX:44 RED-PCB", true },
+        { "TSOP 38k + 940nm",irArmed ? "ARMED (TURBO)" : "STANDBY", "RX:45 TX:44 (100R)", irArmed },
+        { "TTP223 TOUCH",   "CAPACITIVE READY",  "GPIO 46 (TAP/DBL/HLD)", true },
+        { "PS2 THUMBSTICK", "ADC1 DUAL AXIS",    "VRX:1 VRY:2 SW:3", true },
+        { "SHUTTER BTN",    "DIP TACTILE",       "GPIO 0 (GND TRIGGER)", true },
+        { "5V BUZZER (B10)","PWM SQUARE AUDIO",  "GPIO 44 LEDC CH0", true },
+        { "LI-ION 5000mAh", "4.12V / TP4056 OK", "100k/100k DIVIDER", batVolts > 3.2f }
+    };
+    int hwCount = sizeof(hw) / sizeof(hw[0]);
+
+    int startY = 25, itemH = 21, sp = 2;
+    for (int i = 0; i < hwCount && i < 11; i++) {
+        int y = startY + i * (itemH + sp);
+        bool isSel = (i == selectedTestIndex);
+
+        D->fillRoundRect(6, y, SCREEN_WIDTH - 12, itemH, 3, isSel ? theme.cardSel : theme.surface);
+        D->drawRoundRect(6, y, SCREEN_WIDTH - 12, itemH, 3, isSel ? theme.accent : theme.cardBorder);
+
+        // Status pip
+        D->fillCircle(13, y + 10, 3, hw[i].ok ? THEME_GREEN : THEME_CRIMSON);
+
+        // Component name
+        D->setFont(&fonts::Font0);
+        D->setTextSize(1);
+        D->setTextColor(isSel ? theme.text : THEME_STAR_WHITE, isSel ? theme.cardSel : theme.surface);
+        D->setCursor(20, y + 3);
+        D->print(hw[i].name);
+
+        // Status
+        D->setTextColor(hw[i].ok ? THEME_GREEN : THEME_CRIMSON, isSel ? theme.cardSel : theme.surface);
+        D->setCursor(120, y + 3);
+        D->print(hw[i].status);
+
+        // Pin Spec
+        D->setTextColor(theme.subtext, isSel ? theme.cardSel : theme.surface);
+        D->setCursor(20, y + 12);
+        D->print(hw[i].pinSpec);
+    }
+
+    drawBottomBar("CLICK:Self-Test  TOUCH:Back  JOY:Nav");
 }
 
 
