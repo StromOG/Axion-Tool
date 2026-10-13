@@ -14,6 +14,7 @@
 #include "nrf_scanner.h"
 #include "subghz_engine.h"
 #include "ir_engine.h"
+#include "tactical_suite.h"
 #include "icon_assets.h"
 #include <SD_MMC.h>
 #include <esp_heap_caps.h>
@@ -46,6 +47,9 @@ static void runGamesMode(InputEvent evt);
 static void runMainMenu(InputEvent evt);
 static void runWifiMode(InputEvent evt);
 static void runBleMode(InputEvent evt);
+static void runRemoteIdMode(InputEvent evt);
+static void runFoxHuntMode(InputEvent evt);
+static void runSkimmerMode(InputEvent evt);
 static void runNrfMode(InputEvent evt);
 static void runIrMode(InputEvent evt);
 static void runSubGhzMode(InputEvent evt);
@@ -59,18 +63,21 @@ static int menuScroll = 0;
 
 // Main Menu (Clear, direct technical labels)
 static const MenuItem mainMenuItems[] = {
-    { "Camera Viewfinder",     "Live 20+ FPS & 3MP Capture",   ICON_CAMERA,    THEME_CYAN },
-    { "Photo & Video Gallery", "Review Photos & Video Clips",  ICON_GALLERY,   THEME_WHITE },
-    { "SD File Explorer",      "Browse, View & Delete Files",  ICON_SD_CARD,   THEME_GREEN },
-    { "Notepad Text Editor",   "Create & Edit SD TXT Notes",   ICON_DRAW,      THEME_CYAN },
-    { "Cyber Mini-Games",      "Retro 4-in-1 Space Arcade",    ICON_GENERAL_APPS, THEME_GREEN },
+    { "Camera Viewfinder",     "Live 20+ FPS & 3MP Capture",   ICON_CAMERA,         THEME_CYAN },
+    { "Photo & Video Gallery", "Review Photos & Video Clips",  ICON_GALLERY,        THEME_WHITE },
+    { "SD File Explorer",      "Browse, View & Delete Files",  ICON_SD_CARD,        THEME_GREEN },
+    { "Notepad Text Editor",   "Create & Edit SD TXT Notes",   ICON_DRAW,           THEME_CYAN },
+    { "Cyber Mini-Games",      "Retro 4-in-1 Space Arcade",    ICON_GENERAL_APPS,   THEME_GREEN },
     { "2.4GHz RF Analyzer",    "126-Ch Spectrum & Waterfall",  ICON_PACKET_MONITOR, THEME_AMBER },
-    { "Wi-Fi 802.11 Monitor",  "Beacon, Deauth & Encryption",  ICON_WIFI,      THEME_GREEN },
-    { "BLE Proximity Scanner", "Discovery & Manufacturer IDs", ICON_BLUETOOTH, THEME_CRIMSON },
-    { "Sub-GHz 433MHz Engine", "Raw Pulse Capture & Replay",   ICON_SUBGHZ,    THEME_AMBER },
-    { "Infrared Transceiver",  "TSOP Capture & Signal Blaster",ICON_IR,        THEME_CYAN },
-    { "Device Feature Guide",  "Detailed Operation & Controls",ICON_DEVICE,    THEME_CYAN },
-    { "System & Settings",     "Configuration & Diagnostics",  ICON_SETTINGS,  THEME_WHITE }
+    { "Wi-Fi 802.11 Monitor",  "Beacon, Deauth & Encryption",  ICON_WIFI,           THEME_GREEN },
+    { "BLE Proximity Scanner", "Discovery & Manufacturer IDs", ICON_BLUETOOTH,      THEME_CRIMSON },
+    { "Drone Remote ID Sniff", "FAA ASTM F3411 Drone Radar",   ICON_PROBE_SNIFF,    THEME_AMBER },
+    { "Signal Fox-Hunt Seeker","Proximity Direction Finding",  ICON_SCANNERS,       THEME_AMBER },
+    { "Surveillance Scanner",  "Covert Skimmer & Cam Hunter",  ICON_CC_SKIMMERS,    THEME_CRIMSON },
+    { "Sub-GHz 433MHz Engine", "Raw Pulse Capture & Replay",   ICON_SUBGHZ,         THEME_AMBER },
+    { "Infrared Transceiver",  "TSOP Capture & Signal Blaster",ICON_IR,             THEME_CYAN },
+    { "Device Feature Guide",  "Detailed Operation & Controls",ICON_DEVICE,         THEME_CYAN },
+    { "System & Settings",     "Configuration & Diagnostics",  ICON_SETTINGS,       THEME_WHITE }
 };
 static const int MENU_COUNT = sizeof(mainMenuItems) / sizeof(mainMenuItems[0]);
 static const int MENU_VISIBLE = 8;
@@ -82,7 +89,7 @@ static const int MENU_VISIBLE = 8;
 // ============================================================
 void taskCore0(void* pv) {
     while (true) {
-        if (g_state.mode == MODE_WIFI_ANALYZER) {
+        if (g_state.mode == MODE_WIFI_ANALYZER || g_state.mode == MODE_REMOTE_ID || g_state.mode == MODE_SKIMMER_DETECTOR) {
             WiFiAnalyzer::attackLoop();
         } else if (g_state.mode == MODE_BLE_ANALYZER) {
             BLEAnalyzer::spamLoop();
@@ -148,6 +155,9 @@ void taskCore1(void* pv) {
             case MODE_NRF_SPECTRUM:  runNrfMode(evt);         break;
             case MODE_WIFI_ANALYZER: runWifiMode(evt);        break;
             case MODE_BLE_ANALYZER:  runBleMode(evt);         break;
+            case MODE_REMOTE_ID:     runRemoteIdMode(evt);    break;
+            case MODE_FOX_HUNT:      runFoxHuntMode(evt);     break;
+            case MODE_SKIMMER_DETECTOR: runSkimmerMode(evt);  break;
             case MODE_SUBGHZ:        runSubGhzMode(evt);      break;
             case MODE_IR:            runIrMode(evt);          break;
             case MODE_HELP:          runHelpMode(evt);        break;
@@ -254,18 +264,21 @@ static void runMainMenu(InputEvent evt) {
         case EVT_SHUTTER:
             triggerChirp(1900, 10);
             switch (menuSelection) {
-                case 0: switchMode(MODE_CAMERA);        break;
-                case 1: switchMode(MODE_GALLERY);       break;
-                case 2: switchMode(MODE_FILE_EXPLORER); break;
-                case 3: switchMode(MODE_NOTEPAD);       break;
-                case 4: switchMode(MODE_GAMES);         break;
-                case 5: switchMode(MODE_NRF_SPECTRUM);  break;
-                case 6: switchMode(MODE_WIFI_ANALYZER); break;
-                case 7: switchMode(MODE_BLE_ANALYZER);  break;
-                case 8: switchMode(MODE_SUBGHZ);        break;
-                case 9: switchMode(MODE_IR);            break;
-                case 10:switchMode(MODE_HELP);          break;
-                case 11:switchMode(MODE_SETTINGS);      break;
+                case 0:  switchMode(MODE_CAMERA);           break;
+                case 1:  switchMode(MODE_GALLERY);          break;
+                case 2:  switchMode(MODE_FILE_EXPLORER);    break;
+                case 3:  switchMode(MODE_NOTEPAD);          break;
+                case 4:  switchMode(MODE_GAMES);            break;
+                case 5:  switchMode(MODE_NRF_SPECTRUM);     break;
+                case 6:  switchMode(MODE_WIFI_ANALYZER);    break;
+                case 7:  switchMode(MODE_BLE_ANALYZER);     break;
+                case 8:  switchMode(MODE_REMOTE_ID);        break;
+                case 9:  switchMode(MODE_FOX_HUNT);         break;
+                case 10: switchMode(MODE_SKIMMER_DETECTOR); break;
+                case 11: switchMode(MODE_SUBGHZ);           break;
+                case 12: switchMode(MODE_IR);               break;
+                case 13: switchMode(MODE_HELP);             break;
+                case 14: switchMode(MODE_SETTINGS);         break;
             }
             return;
         default: break;
@@ -327,6 +340,19 @@ static void switchMode(SystemMode newMode) {
             g_state.wifiActive = false; break;
         case MODE_BLE_ANALYZER:
             BLEAnalyzer::stopSpam(); BLEAnalyzer::stopScan(); BLEAnalyzer::deinit(); break;
+        case MODE_REMOTE_ID:
+            TacticalSuite::stopDroneScan();
+            WiFiAnalyzer::stopPromiscuous();
+            g_state.wifiActive = false;
+            break;
+        case MODE_FOX_HUNT:
+            TacticalSuite::stopFoxHunt();
+            break;
+        case MODE_SKIMMER_DETECTOR:
+            TacticalSuite::stopSurveillanceScan();
+            WiFiAnalyzer::stopPromiscuous();
+            g_state.wifiActive = false;
+            break;
         case MODE_NRF_SPECTRUM:
             NRFScanner::stopSweep(); NRFScanner::deinit(); g_state.nrfActive = false; break;
         case MODE_IR:     IREngine::deinit();      break;
@@ -344,6 +370,14 @@ static void switchMode(SystemMode newMode) {
             if (WiFiAnalyzer::init()) { WiFiAnalyzer::startPromiscuous(); g_state.wifiActive = true; } break;
         case MODE_BLE_ANALYZER:
             if (BLEAnalyzer::init()) BLEAnalyzer::startScan(); break;
+        case MODE_REMOTE_ID:
+            TacticalSuite::startDroneScan();
+            if (WiFiAnalyzer::init()) { WiFiAnalyzer::startPromiscuous(); g_state.wifiActive = true; } break;
+        case MODE_FOX_HUNT:
+            TacticalSuite::startFoxHunt("TARGET", nullptr, FOX_TYPE_WIFI_AP, 1); break;
+        case MODE_SKIMMER_DETECTOR:
+            TacticalSuite::startSurveillanceScan();
+            if (WiFiAnalyzer::init()) { WiFiAnalyzer::startPromiscuous(); g_state.wifiActive = true; } break;
         case MODE_NRF_SPECTRUM:
             if (NRFScanner::init()) { NRFScanner::startSweep(); g_state.nrfActive = true; } break;
         case MODE_IR:     IREngine::init();     break;
@@ -1892,6 +1926,83 @@ static void runBleMode(InputEvent evt) {
 }
 
 // ============================================================
+// 5B. TACTICAL DRONE REMOTE-ID RADAR (FAA ASTM F3411)
+// ============================================================
+static void runRemoteIdMode(InputEvent evt) {
+    if (evt == EVT_MENU || evt == EVT_BACK) {
+        TacticalSuite::stopDroneScan();
+        WiFiAnalyzer::stopPromiscuous();
+        switchMode(MODE_MAIN_MENU);
+        return;
+    }
+    static int selDroneIdx = 0;
+    static float radarAngle = 0.0f;
+    radarAngle += 0.08f;
+    if (radarAngle >= 6.283f) radarAngle = 0.0f;
+
+    uint8_t count = TacticalSuite::getDroneCount();
+    if (evt == EVT_UP) {
+        if (count > 0) selDroneIdx = (selDroneIdx - 1 + count) % count;
+        triggerChirp(1400, 5);
+    } else if (evt == EVT_DOWN) {
+        if (count > 0) selDroneIdx = (selDroneIdx + 1) % count;
+        triggerChirp(1400, 5);
+    } else if (evt == EVT_SHUTTER) {
+        triggerChirp(2400, 25);
+    }
+
+    DisplayUI::beginFrame();
+    DisplayUI::drawTacticalDroneRadar(count, selDroneIdx, radarAngle);
+    DisplayUI::endFrame();
+}
+
+// ============================================================
+// 5C. SIGNAL FOX-HUNT DIRECTION SEEKER
+// ============================================================
+static void runFoxHuntMode(InputEvent evt) {
+    if (evt == EVT_MENU || evt == EVT_BACK) {
+        TacticalSuite::stopFoxHunt();
+        switchMode(MODE_MAIN_MENU);
+        return;
+    }
+    FoxHuntSession fox = TacticalSuite::getFoxSession();
+    if (evt == EVT_CLICK) {
+        TacticalSuite::clearFoxTarget();
+        triggerChirp(1800, 8);
+    }
+
+    DisplayUI::beginFrame();
+    DisplayUI::drawTacticalFoxHunt(fox.targetName, fox.targetMac, fox.currentRssi, fox.filteredRssi,
+                                   fox.peakRssi, fox.channel, fox.isLocked, fox.estimatedDistanceM, fox.targetType);
+    DisplayUI::endFrame();
+}
+
+// ============================================================
+// 5D. COVERT SURVEILLANCE & SKIMMER SCANNER
+// ============================================================
+static void runSkimmerMode(InputEvent evt) {
+    if (evt == EVT_MENU || evt == EVT_BACK) {
+        TacticalSuite::stopSurveillanceScan();
+        WiFiAnalyzer::stopPromiscuous();
+        switchMode(MODE_MAIN_MENU);
+        return;
+    }
+    static int selNodeIdx = 0;
+    uint8_t count = TacticalSuite::getSurveillanceCount();
+    if (evt == EVT_UP) {
+        if (count > 0) selNodeIdx = (selNodeIdx - 1 + count) % count;
+        triggerChirp(1400, 5);
+    } else if (evt == EVT_DOWN) {
+        if (count > 0) selNodeIdx = (selNodeIdx + 1) % count;
+        triggerChirp(1400, 5);
+    }
+
+    DisplayUI::beginFrame();
+    DisplayUI::drawTacticalSkimmerScanner(count, selNodeIdx, millis());
+    DisplayUI::endFrame();
+}
+
+// ============================================================
 // 6. SUB-GHZ 433MHz
 // ============================================================
 static void runSubGhzMode(InputEvent evt) {
@@ -2055,8 +2166,8 @@ static const char* stillResNames[] = { "VGA", "HD", "UXGA 2MP", "QXGA 3MP" };
 static const char* sceneNamesS[]   = { "AUTO", "INDOOR", "OUTDOOR", "NIGHT", "MACRO" };
 static const char* wbNamesS[]      = { "AUTO", "SUNNY", "CLOUDY", "OFFICE", "HOME" };
 static const char* gainNamesS[]    = { "2X", "4X", "8X", "16X", "32X", "64X", "128X" };
-static const char* gridNamesS[]    = { "NONE", "RETICLE", "RULE 3RDS", "HORIZON" };
-static const char* startModeNames[] = { "MAIN MENU", "CAMERA", "GALLERY", "EXPLORER", "NOTEPAD", "GAMES", "2.4G NRF", "WIFI 802.11", "BLE SCAN", "SUB-GHZ", "INFRARED" };
+static const char* startModeNames[] = { "MAIN MENU", "CAMERA", "GALLERY", "EXPLORER", "NOTEPAD", "GAMES", "2.4G NRF", "WIFI 802.11", "BLE SCAN", "DRONE RADAR", "FOX HUNT", "SKIMMER", "SUB-GHZ", "INFRARED" };
+static const int STARTMODE_COUNT = sizeof(startModeNames) / sizeof(startModeNames[0]);
 static const char* themeNames[] = { "CYBERPUNK", "STEALTH", "FIELD AMBER" };
 static const char* layoutNames[] = { "DASHBOARD", "2x3 GRID", "LIST STACK" };
 static const char* profileNames[] = { "STANDARD", "STEALTH OPS", "SNIFFER LAB" };
@@ -2089,7 +2200,7 @@ static void runSettingsMode(InputEvent evt) {
     setRow(SID_HDR_IDENTITY, "OPERATOR IDENTITY", "", true);
     setRow(SID_CALLSIGN, "Callsign", SettingsManager::getOperatorCallsign(), false);
     uint8_t sm = SettingsManager::getStartupMode();
-    setRow(SID_STARTMODE, "Boot Mode", sm < 11 ? startModeNames[sm] : "MAIN MENU", false);
+    setRow(SID_STARTMODE, "Boot Mode", sm < STARTMODE_COUNT ? startModeNames[sm] : "MAIN MENU", false);
     uint8_t pf = SettingsManager::getProfileMode();
     setRow(SID_PROFILE, "Active Profile", profileNames[pf % 3], false);
 
@@ -2208,7 +2319,7 @@ static void runSettingsMode(InputEvent evt) {
         switch (selIndex) {
             case SID_STARTMODE: {
                 uint8_t cur = SettingsManager::getStartupMode();
-                SettingsManager::setStartupMode((cur + dir + 11) % 11);
+                SettingsManager::setStartupMode((cur + dir + STARTMODE_COUNT) % STARTMODE_COUNT);
                 break;
             }
             case SID_PROFILE: {
@@ -2263,7 +2374,7 @@ static void runSettingsMode(InputEvent evt) {
         switch (selIndex) {
             case SID_STARTMODE: {
                 uint8_t cur = SettingsManager::getStartupMode();
-                SettingsManager::setStartupMode((cur + 1) % 11);
+                SettingsManager::setStartupMode((cur + 1) % STARTMODE_COUNT);
                 triggerChirp(1800, 8);
                 break;
             }
@@ -2628,8 +2739,11 @@ void setup() {
         case 6: switchMode(MODE_NRF_SPECTRUM); break;
         case 7: switchMode(MODE_WIFI_ANALYZER); break;
         case 8: switchMode(MODE_BLE_ANALYZER); break;
-        case 9: switchMode(MODE_SUBGHZ); break;
-        case 10: switchMode(MODE_IR); break;
+        case 9: switchMode(MODE_REMOTE_ID); break;
+        case 10: switchMode(MODE_FOX_HUNT); break;
+        case 11: switchMode(MODE_SKIMMER_DETECTOR); break;
+        case 12: switchMode(MODE_SUBGHZ); break;
+        case 13: switchMode(MODE_IR); break;
         default:
             g_state.mode = MODE_MAIN_MENU;
             menuSelection = 0;

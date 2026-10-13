@@ -1,4 +1,5 @@
 #include "ble_analyzer.h"
+#include "tactical_suite.h"
 #include <esp_bt.h>
 #include <esp_gap_ble_api.h>
 #include <esp_bt_main.h>
@@ -33,6 +34,10 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
         if (scan_result->scan_rst.search_evt == ESP_GAP_SEARCH_INQ_RES_EVT) {
             uint8_t *bda = scan_result->scan_rst.bda;
             int8_t rssi = scan_result->scan_rst.rssi;
+
+            TacticalSuite::feedDroneBlePayload(scan_result->scan_rst.ble_adv, scan_result->scan_rst.adv_data_len, bda, rssi);
+            TacticalSuite::feedSurveillanceBle(scan_result->scan_rst.ble_adv, scan_result->scan_rst.adv_data_len, bda, rssi);
+            TacticalSuite::feedFoxHuntBle(bda, rssi);
 
             // Check if already seen
             for (uint16_t i = 0; i < s_deviceCount; i++) {

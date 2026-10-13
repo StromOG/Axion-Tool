@@ -1,6 +1,7 @@
 #include "wifi_analyzer.h"
 #include "sd_manager.h"
 #include "config.h"
+#include "tactical_suite.h"
 #include <Arduino.h>
 #include <SD_MMC.h>
 #include <esp_wifi.h>
@@ -91,6 +92,9 @@ void WiFiAnalyzer::snifferCallback(void* buf, wifi_promiscuous_pkt_type_t type) 
         stats.mgmtCount++;
         if (fsubtype == 0x08) {
             stats.beaconCount++;
+            TacticalSuite::feedDroneWifiFrame(payload, pkt->rx_ctrl.sig_len, pkt->rx_ctrl.rssi, pkt->rx_ctrl.channel);
+            TacticalSuite::feedFoxHuntFrame(payload, pkt->rx_ctrl.sig_len, pkt->rx_ctrl.rssi, pkt->rx_ctrl.channel);
+            TacticalSuite::feedSurveillanceWifi(payload, pkt->rx_ctrl.sig_len, pkt->rx_ctrl.rssi, pkt->rx_ctrl.channel);
             // Beacon frame parsing: BSSID is bytes 16-21, SSID tag starts at byte 36
             if (pkt->rx_ctrl.sig_len >= 38 && payload[36] == 0x00) {
                 uint8_t ssidLen = payload[37];
