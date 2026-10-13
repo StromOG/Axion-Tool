@@ -173,26 +173,43 @@ void taskCore1(void* pv) {
 // MAIN MENU (scrollable)
 // ============================================================
 static void drawMainMenu() {
-    if (menuSelection < menuScroll) menuScroll = menuSelection;
-    if (menuSelection >= menuScroll + MENU_VISIBLE) menuScroll = menuSelection - MENU_VISIBLE + 1;
-    int visible = MENU_COUNT - menuScroll;
-    if (visible > MENU_VISIBLE) visible = MENU_VISIBLE;
+    uint8_t layout = SettingsManager::getMenuLayout();
 
     DisplayUI::beginFrame();
-    DisplayUI::drawAnimatedMenu(&mainMenuItems[menuScroll], visible, menuSelection - menuScroll, 0.0f);
 
-    // Modern Pill Scrollbar Track & Thumb
-    if (MENU_COUNT > MENU_VISIBLE) {
-        auto* c = DisplayUI::canvas();
-        int trackX = SCREEN_WIDTH - 4;
-        int trackY = 26, trackH = 274;
-        c->fillRoundRect(trackX - 1, trackY, 3, trackH, 1, THEME_PANEL);
-        c->drawFastVLine(trackX, trackY, trackH, THEME_DIM_CYAN);
-        int thumbH = trackH * MENU_VISIBLE / MENU_COUNT;
-        int thumbY = trackY + (trackH - thumbH) * menuScroll / (MENU_COUNT - MENU_VISIBLE);
-        c->fillRoundRect(trackX - 1, thumbY, 3, thumbH, 1, THEME_CYAN);
+    if (layout == LAYOUT_DASHBOARD) {
+        // Read internal ESP32-S3 CPU temperature if available
+        float tempC = 42.0f;
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+        tempC = temperatureRead();
+#endif
+        uint32_t freePsram = ESP.getFreePsram() / 1024;
+        DisplayUI::drawDashboardHome(mainMenuItems, MENU_COUNT, menuSelection,
+                                     g_state.batteryVoltage, g_state.batteryPercent,
+                                     g_state.currentFps, g_state.sdMounted, tempC, freePsram);
+    } else if (layout == LAYOUT_GRID) {
+        DisplayUI::drawGridHome(mainMenuItems, MENU_COUNT, menuSelection);
+    } else {
+        // Classic Modern Vertical Stack
+        if (menuSelection < menuScroll) menuScroll = menuSelection;
+        if (menuSelection >= menuScroll + MENU_VISIBLE) menuScroll = menuSelection - MENU_VISIBLE + 1;
+        int visible = MENU_COUNT - menuScroll;
+        if (visible > MENU_VISIBLE) visible = MENU_VISIBLE;
+
+        DisplayUI::drawAnimatedMenu(&mainMenuItems[menuScroll], visible, menuSelection - menuScroll, 0.0f);
+
+        // Modern Pill Scrollbar Track & Thumb
+        if (MENU_COUNT > MENU_VISIBLE) {
+            auto* c = DisplayUI::canvas();
+            int trackX = SCREEN_WIDTH - 4;
+            int trackY = 26, trackH = 274;
+            c->fillRoundRect(trackX - 1, trackY, 3, trackH, 1, THEME_PANEL);
+            c->drawFastVLine(trackX, trackY, trackH, THEME_DIM_CYAN);
+            int thumbH = trackH * MENU_VISIBLE / MENU_COUNT;
+            int thumbY = trackY + (trackH - thumbH) * menuScroll / (MENU_COUNT - MENU_VISIBLE);
+            c->fillRoundRect(trackX - 1, thumbY, 3, thumbH, 1, THEME_CYAN);
+        }
     }
-
 
     char statBuf[52];
     snprintf(statBuf, sizeof(statBuf), "SD:%s | %.2fV %d%% | %.0f FPS",
@@ -204,14 +221,35 @@ static void drawMainMenu() {
 static void runMainMenu(InputEvent evt) {
     static bool needsRedraw = true;
     static int lastSel = -1;
+    uint8_t layout = SettingsManager::getMenuLayout();
 
     switch (evt) {
         case EVT_UP:
-            menuSelection = (menuSelection - 1 + MENU_COUNT) % MENU_COUNT;
+            if (layout == LAYOUT_GRID) {
+                menuSelection = (menuSelection - 2 + MENU_COUNT) % MENU_COUNT;
+            } else {
+                menuSelection = (menuSelection - 1 + MENU_COUNT) % MENU_COUNT;
+            }
             needsRedraw = true; triggerChirp(1400, 6); break;
         case EVT_DOWN:
-            menuSelection = (menuSelection + 1) % MENU_COUNT;
+            if (layout == LAYOUT_GRID) {
+                menuSelection = (menuSelection + 2) % MENU_COUNT;
+            } else {
+                menuSelection = (menuSelection + 1) % MENU_COUNT;
+            }
             needsRedraw = true; triggerChirp(1400, 6); break;
+        case EVT_LEFT:
+            if (layout == LAYOUT_GRID) {
+                menuSelection = (menuSelection - 1 + MENU_COUNT) % MENU_COUNT;
+                needsRedraw = true; triggerChirp(1400, 6);
+            }
+            break;
+        case EVT_RIGHT:
+            if (layout == LAYOUT_GRID) {
+                menuSelection = (menuSelection + 1) % MENU_COUNT;
+                needsRedraw = true; triggerChirp(1400, 6);
+            }
+            break;
         case EVT_CLICK:
         case EVT_SHUTTER:
             triggerChirp(1900, 10);
@@ -2001,14 +2039,15 @@ static void runIrMode(InputEvent evt) {
 // 8. SETTINGS (scrollable, functional, sectioned)
 // ============================================================
 enum SetId {
-    SID_HDR_IDENTITY, SID_CALLSIGN, SID_STARTMODE,
+    SID_HDR_IDENTITY, SID_CALLSIGN, SID_STARTMODE, SID_PROFILE,
+    SID_HDR_AESTHETICS, SID_THEME, SID_LAYOUT,
     SID_HDR_DISPLAY, SID_BRIGHT, SID_SOUND,
     SID_HDR_CAMERA, SID_SCENE, SID_STILLRES, SID_STILLQ, SID_CBRI, SID_CCON, SID_CSAT, SID_CSHARP, SID_CDEN, SID_CEV, SID_CGAIN, SID_CWB, SID_PREVRES, SID_VFLIP, SID_HMIR, SID_GRID,
     SID_HDR_NAMING, SID_PREFIX, SID_AUTOINDEX, SID_PROMPTNAME, SID_FORMAT,
     SID_HDR_RADIO, SID_HOP,
     SID_HDR_STORAGE, SID_BENCH, SID_HEALTH, SID_ERASE, SID_FILES,
     SID_HDR_CONFIG, SID_CONFIG_SAVE, SID_CONFIG_LOAD,
-    SID_HDR_SYSTEM, SID_ABOUT, SID_RESET, SID_SAVE,
+    SID_HDR_SYSTEM, SID_TELEMETRY, SID_REBOOT, SID_ABOUT, SID_RESET, SID_SAVE,
     SID_TOTAL
 };
 
@@ -2018,6 +2057,9 @@ static const char* wbNamesS[]      = { "AUTO", "SUNNY", "CLOUDY", "OFFICE", "HOM
 static const char* gainNamesS[]    = { "2X", "4X", "8X", "16X", "32X", "64X", "128X" };
 static const char* gridNamesS[]    = { "NONE", "RETICLE", "RULE 3RDS", "HORIZON" };
 static const char* startModeNames[] = { "MAIN MENU", "CAMERA", "GALLERY", "EXPLORER", "NOTEPAD", "GAMES", "2.4G NRF", "WIFI 802.11", "BLE SCAN", "SUB-GHZ", "INFRARED" };
+static const char* themeNames[] = { "CYBERPUNK", "STEALTH", "FIELD AMBER" };
+static const char* layoutNames[] = { "DASHBOARD", "2x3 GRID", "LIST STACK" };
+static const char* profileNames[] = { "STANDARD", "STEALTH OPS", "SNIFFER LAB" };
 
 static void runSettingsMode(InputEvent evt) {
     static int selIndex = SID_BRIGHT;
@@ -2025,6 +2067,7 @@ static void runSettingsMode(InputEvent evt) {
     static float benchKbps = 0.0f;
     static int cardHealthy = -1; // -1 unknown, 0 fail, 1 ok
     static bool confirmErase = false, confirmYes = false;
+    static bool confirmReboot = false, confirmRebootYes = false;
 
     const int VISIBLE = 11;
     CameraSettings& cam = SettingsManager::camera();
@@ -2047,8 +2090,16 @@ static void runSettingsMode(InputEvent evt) {
     setRow(SID_CALLSIGN, "Callsign", SettingsManager::getOperatorCallsign(), false);
     uint8_t sm = SettingsManager::getStartupMode();
     setRow(SID_STARTMODE, "Boot Mode", sm < 11 ? startModeNames[sm] : "MAIN MENU", false);
+    uint8_t pf = SettingsManager::getProfileMode();
+    setRow(SID_PROFILE, "Active Profile", profileNames[pf % 3], false);
 
-    setRow(SID_HDR_DISPLAY, "DISPLAY", "", true);
+    setRow(SID_HDR_AESTHETICS, "THEME & UI DESIGN", "", true);
+    uint8_t th = SettingsManager::getThemePreset();
+    setRow(SID_THEME, "Color Theme", themeNames[th % 3], false);
+    uint8_t ly = SettingsManager::getMenuLayout();
+    setRow(SID_LAYOUT, "Home Layout", layoutNames[ly % 3], false);
+
+    setRow(SID_HDR_DISPLAY, "DISPLAY & AUDIO", "", true);
     snprintf(tmp, sizeof(tmp), "%d%%", SettingsManager::getBrightness()); setRow(SID_BRIGHT, "Brightness (SW)", tmp, false);
     setRow(SID_SOUND, "Sound", SettingsManager::isSoundEnabled() ? "ON" : "MUTED", false);
 
@@ -2090,7 +2141,14 @@ static void runSettingsMode(InputEvent evt) {
     setRow(SID_CONFIG_SAVE, "Export Config", "SYNC >", false);
     setRow(SID_CONFIG_LOAD, "Reload INI File", "LOAD >", false);
 
-    setRow(SID_HDR_SYSTEM, "SYSTEM", "", true);
+    setRow(SID_HDR_SYSTEM, "SYSTEM & HARDWARE", "", true);
+    float tC = 42.0f;
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+    tC = temperatureRead();
+#endif
+    snprintf(tmp, sizeof(tmp), "%.1fC / %uK", tC, (unsigned)(ESP.getFreePsram()/1024));
+    setRow(SID_TELEMETRY, "Core Telemetry", tmp, false);
+    setRow(SID_REBOOT, "Reboot Device", "EXEC >", false);
     setRow(SID_ABOUT, "About / Info", "OPEN >", false);
     setRow(SID_RESET, "Reset Defaults", "RUN >", false);
     setRow(SID_SAVE, "Save & Exit", "ENTER >", false);
@@ -2118,6 +2176,27 @@ static void runSettingsMode(InputEvent evt) {
         return;
     }
 
+    // Confirm dialog for reboot
+    if (confirmReboot) {
+        if (evt == EVT_LEFT || evt == EVT_RIGHT) confirmRebootYes = !confirmRebootYes;
+        else if (evt == EVT_CLICK) {
+            if (confirmRebootYes) {
+                triggerChirp(2600, 40);
+                SDManager::flush();
+                SD_MMC.end();
+                delay(120);
+                esp_restart();
+            }
+            confirmReboot = false;
+        } else if (evt == EVT_MENU || evt == EVT_BACK) confirmReboot = false;
+
+        DisplayUI::beginFrame();
+        DisplayUI::drawSettingsMenu(selIndex, namePtrs, valPtrs, isHeader, SID_TOTAL, scroll, VISIBLE);
+        DisplayUI::drawConfirm("REBOOT DEVICE", "Restart Axion ESP32-S3?", confirmRebootYes);
+        DisplayUI::endFrame();
+        return;
+    }
+
     if (evt == EVT_MENU || evt == EVT_BACK) { SettingsManager::save(); switchMode(MODE_MAIN_MENU); return; }
 
     if (evt == EVT_UP)   { nextSel(-1); triggerChirp(1400, 6); }
@@ -2130,6 +2209,24 @@ static void runSettingsMode(InputEvent evt) {
             case SID_STARTMODE: {
                 uint8_t cur = SettingsManager::getStartupMode();
                 SettingsManager::setStartupMode((cur + dir + 11) % 11);
+                break;
+            }
+            case SID_PROFILE: {
+                int p = (int)SettingsManager::getProfileMode() + dir;
+                if (p < 0) p = 2; else if (p > 2) p = 0;
+                SettingsManager::setProfileMode((uint8_t)p);
+                break;
+            }
+            case SID_THEME: {
+                int t = (int)SettingsManager::getThemePreset() + dir;
+                if (t < 0) t = 2; else if (t > 2) t = 0;
+                SettingsManager::setThemePreset((uint8_t)t);
+                break;
+            }
+            case SID_LAYOUT: {
+                int l = (int)SettingsManager::getMenuLayout() + dir;
+                if (l < 0) l = 2; else if (l > 2) l = 0;
+                SettingsManager::setMenuLayout((uint8_t)l);
                 break;
             }
             case SID_BRIGHT: SettingsManager::setBrightness(SettingsManager::getBrightness() + dir * 10); break;
@@ -2170,6 +2267,24 @@ static void runSettingsMode(InputEvent evt) {
                 triggerChirp(1800, 8);
                 break;
             }
+            case SID_PROFILE: {
+                uint8_t p = (SettingsManager::getProfileMode() + 1) % 3;
+                SettingsManager::setProfileMode(p);
+                triggerChirp(1800, 8);
+                break;
+            }
+            case SID_THEME: {
+                uint8_t t = (SettingsManager::getThemePreset() + 1) % 3;
+                SettingsManager::setThemePreset(t);
+                triggerChirp(1800, 8);
+                break;
+            }
+            case SID_LAYOUT: {
+                uint8_t l = (SettingsManager::getMenuLayout() + 1) % 3;
+                SettingsManager::setMenuLayout(l);
+                triggerChirp(1800, 8);
+                break;
+            }
             case SID_SOUND: SettingsManager::setSoundEnabled(!SettingsManager::isSoundEnabled()); triggerChirp(1800, 8); break;
             case SID_PREFIX: SettingsManager::cycleImagePrefix(); triggerChirp(1800, 8); break;
             case SID_PROMPTNAME: SettingsManager::setPromptNamingEnabled(!SettingsManager::isPromptNamingEnabled()); triggerChirp(1800, 8); break;
@@ -2185,6 +2300,12 @@ static void runSettingsMode(InputEvent evt) {
             case SID_CONFIG_LOAD: {
                 bool ok = SettingsManager::loadFromConfigFile(PATH_CONFIG_INI);
                 triggerChirp(ok ? 2200 : 800, ok ? 25 : 40);
+                break;
+            }
+            case SID_REBOOT: {
+                confirmReboot = true;
+                confirmRebootYes = false;
+                triggerChirp(1800, 10);
                 break;
             }
             case SID_ABOUT: switchMode(MODE_ABOUT); return;

@@ -33,6 +33,20 @@
 #define THEME_BW_SILVER   0xCE59  // Silver Accent (#CCCCCC)
 #define THEME_BW_MUTED    0x8410  // Midtone Muted (#808080)
 
+// Dynamic Theme Color Tokens
+struct UITheme {
+    uint16_t bg;
+    uint16_t panel;
+    uint16_t surface;
+    uint16_t cardSel;
+    uint16_t cardBorder;
+    uint16_t primary;
+    uint16_t accent;
+    uint16_t text;
+    uint16_t subtext;
+    uint16_t border;
+};
+
 struct MenuItem {
     const char* label;
     const char* subtext;
@@ -47,13 +61,19 @@ public:
     static lgfx::LGFXBase* canvas();    // current off-screen draw target
     static void clear(uint16_t color = THEME_BG);
 
+    // Active Theme Token Accessor
+    static UITheme getTheme();
+
     // Flicker-free buffered compose: beginFrame() clears the PSRAM back buffer,
     // draw with the helpers / canvas(), then endFrame() dims + pushes it once.
     static void beginFrame(uint16_t bg = THEME_BG);
     static void endFrame();
 
-    // Smooth Animated Menu Renderer
+    // Multi-Layout Home Menu Renderers
     static void drawAnimatedMenu(const MenuItem* items, uint8_t count, int selectedIndex, float animOffset);
+    static void drawDashboardHome(const MenuItem* items, uint8_t count, int selectedIndex,
+                                  float batVolt, int batPct, float fps, bool sdOk, float tempC, uint32_t freePsramKB);
+    static void drawGridHome(const MenuItem* items, uint8_t count, int selectedIndex);
 
     // Modern Header & Footer HUD
     static void drawTopBar(const char* title, uint16_t accentColor, uint8_t batteryPercent = 100);

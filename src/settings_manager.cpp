@@ -17,6 +17,9 @@ char SettingsManager::operatorCallsign[24] = "OPERATOR_01";
 uint8_t SettingsManager::startupMode = 0;      // 0 = Main Menu
 bool SettingsManager::autoSavePcap = true;
 uint16_t SettingsManager::foxHuntSensitivity = 65;
+uint8_t SettingsManager::themePreset = 0; // THEME_CYBERPUNK
+uint8_t SettingsManager::menuLayout = 0;  // LAYOUT_DASHBOARD
+uint8_t SettingsManager::profileMode = 0; // PROFILE_STANDARD
 CameraSettings SettingsManager::cam = {};
 
 static const char* PRESET_PREFIXES[] = { "image", "photo", "shot", "capture", "doc", "axion" };
@@ -54,6 +57,9 @@ void SettingsManager::resetDefaults() {
     startupMode = 0;
     autoSavePcap = true;
     foxHuntSensitivity = 65;
+    themePreset = 0;
+    menuLayout = 0;
+    profileMode = 0;
     applyCameraDefaults(cam);
 }
 
@@ -199,6 +205,9 @@ void SettingsManager::generateDefaultConfigFile(const char* path) {
     f.printf("startup_mode = %u        # 0:Main Menu, 1:Camera, 6:WiFi, 7:BLE, 8:SubGHz\n", (unsigned)startupMode);
     f.printf("brightness = %u          # 10..100 (Backlight intensity percentage)\n", (unsigned)brightness);
     f.printf("sound_enabled = %s       # true / false (Tactical audio feedback)\n", soundEnabled ? "true" : "false");
+    f.printf("theme_preset = %u        # 0:Cyberpunk (Obsidian/Cyan), 1:Stealth (Carbon/White), 2:Field Amber\n", (unsigned)themePreset);
+    f.printf("menu_layout = %u         # 0:Dashboard, 1:Grid 2x3, 2:Classic List\n", (unsigned)menuLayout);
+    f.printf("profile_mode = %u        # 0:Standard, 1:Stealth Ops, 2:Sniffer Lab\n", (unsigned)profileMode);
     f.println();
 
     f.println("[RADIO_AND_TACTICAL]");
@@ -287,6 +296,9 @@ bool SettingsManager::loadFromConfigFile(const char* path) {
             } else if (strcasecmp(key, "startup_mode") == 0) startupMode = (uint8_t)atoi(val);
             else if (strcasecmp(key, "brightness") == 0) setBrightness((uint8_t)atoi(val));
             else if (strcasecmp(key, "sound_enabled") == 0) setSoundEnabled(toBool(val));
+            else if (strcasecmp(key, "theme_preset") == 0) themePreset = (uint8_t)constrain(atoi(val), 0, THEME_PRESET_COUNT - 1);
+            else if (strcasecmp(key, "menu_layout") == 0) menuLayout = (uint8_t)constrain(atoi(val), 0, LAYOUT_COUNT - 1);
+            else if (strcasecmp(key, "profile_mode") == 0) setProfileMode((uint8_t)constrain(atoi(val), 0, PROFILE_COUNT - 1));
         } else if (strcasecmp(currentSection, "RADIO_AND_TACTICAL") == 0) {
             if (strcasecmp(key, "wifi_hop_delay_sec") == 0) channelHopDelay = (uint8_t)constrain(atoi(val), 1, 10);
             else if (strcasecmp(key, "auto_save_pcap") == 0) autoSavePcap = toBool(val);
@@ -330,6 +342,34 @@ void SettingsManager::setSoundEnabled(bool enabled) {
 
 uint8_t SettingsManager::getChannelHopDelay() { return channelHopDelay; }
 void SettingsManager::setChannelHopDelay(uint8_t delaySec) { channelHopDelay = delaySec; }
+
+uint8_t SettingsManager::getThemePreset() { return themePreset; }
+void SettingsManager::setThemePreset(uint8_t theme) {
+    if (theme < THEME_PRESET_COUNT) themePreset = theme;
+}
+
+uint8_t SettingsManager::getMenuLayout() { return menuLayout; }
+void SettingsManager::setMenuLayout(uint8_t layout) {
+    if (layout < LAYOUT_COUNT) menuLayout = layout;
+}
+
+uint8_t SettingsManager::getProfileMode() { return profileMode; }
+void SettingsManager::setProfileMode(uint8_t prof) {
+    if (prof < PROFILE_COUNT) {
+        profileMode = prof;
+        // Automated Profile Tuning
+        if (prof == PROFILE_STEALTH_OPS) {
+            setBrightness(25);
+            setSoundEnabled(false);
+            setLedEnabled(false);
+        } else if (prof == PROFILE_SNIFFER_LAB) {
+            setBrightness(85);
+            setSoundEnabled(true);
+            setChannelHopDelay(1);
+            setAutoSavePcapEnabled(true);
+        }
+    }
+}
 
 const char* SettingsManager::getOperatorCallsign() { return operatorCallsign; }
 void SettingsManager::setOperatorCallsign(const char* callsign) {

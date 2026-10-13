@@ -21,6 +21,27 @@ struct CameraSettings {
     bool    mirrorH;
 };
 
+enum ThemePreset {
+    THEME_CYBERPUNK = 0,
+    THEME_STEALTH = 1,
+    THEME_FIELD_AMBER = 2,
+    THEME_PRESET_COUNT = 3
+};
+
+enum MenuLayout {
+    LAYOUT_DASHBOARD = 0,
+    LAYOUT_GRID = 1,
+    LAYOUT_LIST = 2,
+    LAYOUT_COUNT = 3
+};
+
+enum ProfileMode {
+    PROFILE_STANDARD = 0,
+    PROFILE_STEALTH_OPS = 1,
+    PROFILE_SNIFFER_LAB = 2,
+    PROFILE_COUNT = 3
+};
+
 class SettingsManager {
 public:
     static void init();
@@ -33,9 +54,18 @@ public:
     static bool saveToConfigFile(const char* path = "/axion_config.ini");
     static void generateDefaultConfigFile(const char* path = "/axion_config.ini");
 
-    // Display / UI
+    // Display & Aesthetic Customization
     static uint8_t getBrightness();            // software dim level 10..100
     static void setBrightness(uint8_t b);
+
+    static uint8_t getThemePreset();
+    static void setThemePreset(uint8_t theme);
+
+    static uint8_t getMenuLayout();
+    static void setMenuLayout(uint8_t layout);
+
+    static uint8_t getProfileMode();
+    static void setProfileMode(uint8_t prof);
 
     static bool isSoundEnabled();
     static void setSoundEnabled(bool enabled);
@@ -91,5 +121,8 @@ private:
     static uint8_t startupMode;
     static bool autoSavePcap;
     static uint16_t foxHuntSensitivity;
+    static uint8_t themePreset;
+    static uint8_t menuLayout;
+    static uint8_t profileMode;
     static CameraSettings cam;
 };
